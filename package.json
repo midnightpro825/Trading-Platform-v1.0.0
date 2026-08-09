@@ -1,40 +1,24 @@
 {
-  "name": "my-crypto-exchange",
+  "name": "tradeflow-backend",
   "version": "1.0.0",
-  "description": "TradeFlow - Full Crypto Exchange",
-  "main": "server.js",
+  "description": "TradeFlow Exchange Backend",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "frontend": "cd frontend && npm run dev",
-    "full": "concurrently \"npm run dev\" \"npm run frontend\"",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "audit:fix": "npm audit fix --force",
     "security:check": "npm audit"
   },
-  "keywords": [
-    "crypto",
-    "exchange",
-    "trading",
-    "websocket"
-  ],
-  "author": "TradeFlow",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "decimal.js": "^10.6.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "node-fetch": "^3.3.2",
     "pg": "^8.22.0",
     "ws": "^8.21.0"
   },
   "devDependencies": {
-    "concurrently": "^9.2.3",
     "nodemon": "^3.1.14"
   },
   "overrides": {
