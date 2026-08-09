@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Registration</title>
+    <style>
+        body { font-family: Arial; background: #0a0b0e; color: white; padding: 20px; }
+        input { display: block; margin: 10px 0; padding: 10px; width: 300px; background: #1e2329; border: 1px solid #2b3139; color: white; border-radius: 6px; }
+        button { padding: 10px 30px; background: #f0b90b; border: none; border-radius: 6px; color: #0a0b0e; font-weight: bold; cursor: pointer; }
+        #result { margin-top: 20px; padding: 10px; background: #1e2329; border-radius: 6px; white-space: pre-wrap; }
+        .success { color: #0ecb81; }
+        .error { color: #f6465d; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Registration</h1>
+    <p>This page tests if the backend registration is working</p>
+    
+    <input type="text" id="name" placeholder="Name" value="Test User">
+    <input type="email" id="email" placeholder="Email" value="test@example.com">
+    <input type="password" id="password" placeholder="Password" value="password123">
+    
+    <button onclick="testRegister()">📝 Test Register</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testRegister() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = '⏳ Testing registration...';
+            
+            try {
+                console.log('📝 Testing registration for:', email);
+                
+                const response = await fetch('http://localhost:8081/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        password: password,
+                        username: name.toLowerCase().replace(/\s/g, '')
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('📡 Response:', data);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        ✅ SUCCESS! User registered!
+                        
+                        👤 Name: ${data.user.name}
+                        📧 Email: ${data.user.email}
+                        🆔 ID: ${data.user.id}
+                        🔑 Token: ${data.token.substring(0, 30)}...
+                        
+                        💾 Check localStorage: ${localStorage.getItem('user') ? '✅ User saved!' : '❌ User not saved'}
+                    `;
+                    resultDiv.className = 'success';
+                    
+                    // Save to localStorage for testing
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    console.log('✅ User saved to localStorage:', data.user);
+                } else {
+                    resultDiv.innerHTML = `❌ Registration failed: ${data.message || 'Unknown error'}`;
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                console.error('❌ Error:', error);
+                resultDiv.innerHTML = `❌ Connection error: ${error.message}\n\nMake sure backend is running on port 8081`;
+                resultDiv.className = 'error';
+            }
+        }
+        
+        // Check if user exists in localStorage
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+            try {
+                const user = JSON.parse(savedUser);
+                console.log('👤 Saved user:', user);
+            } catch (e) {}
+        }
+    </script>
+</body>
+</html>

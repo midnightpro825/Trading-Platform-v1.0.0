@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login - TradeFlow</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0b0e;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(ellipse at center, #14151a 0%, #0a0b0e 100%);
+        }
+        .login-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 40px;
+            backdrop-filter: blur(20px);
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-logo .icon { color: #f0b90b; font-size: 40px; }
+        .login-logo h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 8px;
+        }
+        .login-logo .highlight { color: #f0b90b; }
+        .login-logo .subtitle {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #f0b90b;
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 0 0 4px rgba(240, 185, 11, 0.05);
+        }
+        .form-group input::placeholder { color: rgba(255, 255, 255, 0.2); }
+        .btn-login {
+            width: 100%;
+            padding: 16px;
+            background: #f0b90b;
+            border: none;
+            border-radius: 10px;
+            color: #0a0b0e;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            margin-top: 8px;
+        }
+        .btn-login:hover {
+            background: #f5c93d;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(240, 185, 11, 0.3);
+        }
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .error-message {
+            color: #f6465d;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 12px;
+            min-height: 20px;
+        }
+        .admin-badge {
+            display: inline-block;
+            background: rgba(240, 185, 11, 0.1);
+            border: 1px solid rgba(240, 185, 11, 0.2);
+            color: #f0b90b;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .security-badge {
+            text-align: center;
+            margin-top: 24px;
+            padding: 12px;
+            background: rgba(14, 203, 129, 0.05);
+            border: 1px solid rgba(14, 203, 129, 0.1);
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+        }
+        .security-badge span { color: #0ecb81; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="icon">👑</div>
+                <h1>Trade<span class="highlight">Flow</span></h1>
+                <div class="subtitle">Admin Panel Login</div>
+                <div class="admin-badge">🔐 Secure Access</div>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        placeholder="admin@tradeflow.com" 
+                        value="admin@tradeflow.com"
+                        required
+                    />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Enter your password" 
+                        value="Admin123!"
+                        required
+                    />
+                </div>
+                <button type="submit" class="btn-login" id="loginBtn">🔓 Login to Admin Panel</button>
+                <div class="error-message" id="errorMessage"></div>
+            </form>
+
+            <div class="security-badge">
+                🔒 Secured with 256-bit encryption &bull; <span>2FA available</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('errorMessage');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            errorEl.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = '⏳ Logging in...';
+            
+            try {
+                console.log('🔐 Admin login attempt:', email);
+                
+                const response = await fetch('http://localhost:8081/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                console.log('📡 Admin login response:', data);
+                
+                if (data.success && data.token) {
+                    // Check if user is admin
+                    if (data.user.role === 'admin') {
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        window.location.href = '/admin.html';
+                    } else {
+                        errorEl.textContent = '❌ You are not an admin!';
+                    }
+                } else {
+                    errorEl.textContent = '❌ ' + (data.message || 'Invalid admin credentials');
+                }
+            } catch (error) {
+                console.error('❌ Admin login error:', error);
+                errorEl.textContent = '❌ Connection error. Please make sure the backend is running on port 8081';
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = '🔓 Login to Admin Panel';
+            }
+        }
+    </script>
+</body>
+</html>

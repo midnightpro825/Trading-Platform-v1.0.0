@@ -1,0 +1,575 @@
+import React, { useState } from 'react';
+
+const Deposits = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterAsset, setFilterAsset] = useState('all');
+  const [selectedDeposit, setSelectedDeposit] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmId, setConfirmId] = useState(null);
+  const [activeTab, setActiveTab] = useState('pending');
+  const [approvalHistory, setApprovalHistory] = useState([]);
+
+  // Mock deposit data
+  const [deposits, setDeposits] = useState([
+    {
+      id: 'DP-2024-001',
+      user: 'Alice Johnson',
+      email: 'alice@email.com',
+      asset: 'USDT',
+      amount: 5000,
+      fee: 0.50,
+      address: 'TT7aLqkJ4Cfg8eF19PsJY3tXXSGqKYtcPn',
+      network: 'TRC-20',
+      status: 'pending',
+      timestamp: '2024-07-17 14:30:22',
+      confirmations: 3,
+      requiredConfirmations: 12,
+      risk: 'Low',
+      txid: '0x8f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c',
+      notes: 'First deposit'
+    },
+    {
+      id: 'DP-2024-002',
+      user: 'Bob Smith',
+      email: 'bob@email.com',
+      asset: 'BTC',
+      amount: 0.5,
+      fee: 0.0005,
+      address: 'bc1q8augnskzpdgy4uyekda9zcmk5x4ymrd6lfzuna',
+      network: 'BTC (Native SegWit)',
+      status: 'pending',
+      timestamp: '2024-07-17 12:15:45',
+      confirmations: 1,
+      requiredConfirmations: 6,
+      risk: 'Low',
+      txid: 'bc1q8augnskzpdgy4uyekda9zcmk5x4ymrd6lfzuna',
+      notes: 'BTC deposit'
+    },
+    {
+      id: 'DP-2024-003',
+      user: 'Charlie Lee',
+      email: 'charlie@email.com',
+      asset: 'ETH',
+      amount: 2.5,
+      fee: 0.50,
+      address: '0x3208bc056390ea8defbaf6f14b591b12836e3544',
+      network: 'ERC-20',
+      status: 'pending',
+      timestamp: '2024-07-17 10:00:10',
+      confirmations: 8,
+      requiredConfirmations: 12,
+      risk: 'Low',
+      txid: '0x9a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+      notes: 'ETH deposit'
+    },
+    {
+      id: 'DP-2024-004',
+      user: 'Diana Park',
+      email: 'diana@email.com',
+      asset: 'SOL',
+      amount: 120,
+      fee: 0.05,
+      address: '5M6FpRxVJjPXgUHyCKsFpPpKvJxHgE5YCHbUhxrVVwLJ',
+      network: 'Solana (SPL)',
+      status: 'pending',
+      timestamp: '2024-07-16 22:20:15',
+      confirmations: 15,
+      requiredConfirmations: 20,
+      risk: 'Medium',
+      txid: '5M6FpRxVJjPXgUHyCKsFpPpKvJxHgE5YCHbUhxrVVwLJ',
+      notes: 'Large deposit'
+    },
+    {
+      id: 'DP-2024-005',
+      user: 'Ethan Wu',
+      email: 'ethan@email.com',
+      asset: 'USDT',
+      amount: 1500,
+      fee: 0.50,
+      address: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+      network: 'ERC-20',
+      status: 'completed',
+      timestamp: '2024-07-16 14:05:33',
+      confirmations: 18,
+      requiredConfirmations: 12,
+      risk: 'Low',
+      txid: '0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+      notes: 'Completed deposit'
+    },
+    {
+      id: 'DP-2024-006',
+      user: 'Fiona Zhang',
+      email: 'fiona@email.com',
+      asset: 'USDT',
+      amount: 10000,
+      fee: 0.50,
+      address: '0x2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d',
+      network: 'TRC-20',
+      status: 'failed',
+      timestamp: '2024-07-16 11:30:20',
+      confirmations: 0,
+      requiredConfirmations: 12,
+      risk: 'High',
+      txid: '0x2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d',
+      notes: 'Failed - Insufficient funds'
+    },
+    {
+      id: 'DP-2024-007',
+      user: 'George Kim',
+      email: 'george@email.com',
+      asset: 'USDT',
+      amount: 2500,
+      fee: 0.50,
+      address: 'TT7aLqkJ4Cfg8eF19PsJY3tXXSGqKYtcPn',
+      network: 'TRC-20',
+      status: 'pending',
+      timestamp: '2024-07-16 09:45:00',
+      confirmations: 10,
+      requiredConfirmations: 12,
+      risk: 'Low',
+      txid: '0x3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d',
+      notes: 'Almost confirmed'
+    },
+  ]);
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'pending': return '#f0b90b';
+      case 'completed': return '#0ecb81';
+      case 'failed': return '#f6465d';
+      default: return '#848e9c';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'pending': return '⏳';
+      case 'completed': return '✅';
+      case 'failed': return '❌';
+      default: return '🔄';
+    }
+  };
+
+  const getRiskColor = (risk) => {
+    switch(risk) {
+      case 'Low': return '#0ecb81';
+      case 'Medium': return '#f0b90b';
+      case 'High': return '#f6465d';
+      default: return '#848e9c';
+    }
+  };
+
+  const getConfirmationProgress = (deposit) => {
+    const progress = (deposit.confirmations / deposit.requiredConfirmations) * 100;
+    return Math.min(progress, 100);
+  };
+
+  const filteredDeposits = deposits.filter(dp => {
+    const matchesSearch = dp.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          dp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          dp.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          dp.txid.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || dp.status === filterStatus;
+    const matchesAsset = filterAsset === 'all' || dp.asset === filterAsset;
+    
+    // Tab filtering
+    if (activeTab === 'pending') return matchesSearch && matchesStatus && matchesAsset && dp.status === 'pending';
+    if (activeTab === 'completed') return matchesSearch && matchesStatus && matchesAsset && dp.status === 'completed';
+    if (activeTab === 'history') return matchesSearch && matchesStatus && matchesAsset;
+    
+    return matchesSearch && matchesStatus && matchesAsset;
+  });
+
+  const handleViewDetails = (dp) => {
+    setSelectedDeposit(dp);
+    setShowDetailModal(true);
+  };
+
+  const handleConfirm = (id) => {
+    setConfirmId(id);
+    setShowConfirmModal(true);
+  };
+
+  const confirmDeposit = () => {
+    const deposit = deposits.find(d => d.id === confirmId);
+    if (!deposit) return;
+
+    // Add to approval history
+    const historyEntry = {
+      id: Date.now(),
+      depositId: deposit.id,
+      user: deposit.user,
+      amount: deposit.amount,
+      asset: deposit.asset,
+      timestamp: new Date().toISOString(),
+      approvedBy: 'Admin'
+    };
+    setApprovalHistory([historyEntry, ...approvalHistory]);
+
+    // Update deposit
+    setDeposits(dps => dps.map(dp => 
+      dp.id === confirmId ? { 
+        ...dp, 
+        status: 'completed',
+        confirmations: dp.requiredConfirmations,
+        approvedAt: new Date().toISOString(),
+        approvedBy: 'Admin',
+        notes: `Confirmed by admin on ${new Date().toLocaleString()}`
+      } : dp
+    ));
+
+    setShowConfirmModal(false);
+    setConfirmId(null);
+    
+    alert(`✅ Deposit confirmed!\n\n💰 ${deposit.amount} ${deposit.asset} credited to ${deposit.user}\n📧 Notification sent to ${deposit.email}\n✅ Balance updated in user's account`);
+  };
+
+  const handleReject = (id) => {
+    if (confirm('Reject this deposit? The user will be notified.')) {
+      setDeposits(dps => dps.map(dp => 
+        dp.id === id ? { 
+          ...dp, 
+          status: 'failed',
+          notes: `Rejected by admin on ${new Date().toLocaleString()}`
+        } : dp
+      ));
+      alert('❌ Deposit rejected');
+    }
+  };
+
+  // Stats
+  const totalPending = deposits.filter(d => d.status === 'pending').length;
+  const totalCompleted = deposits.filter(d => d.status === 'completed').length;
+  const totalFailed = deposits.filter(d => d.status === 'failed').length;
+  const totalAmount = deposits.filter(d => d.status === 'pending' || d.status === 'completed')
+    .reduce((sum, d) => sum + d.amount, 0);
+
+  const assets = [...new Set(deposits.map(d => d.asset))];
+
+  return (
+    <div className="admin-page">
+      <h2>📥 Deposits Management</h2>
+      <p>Monitor and confirm all deposit transactions</p>
+
+      {/* Stats Summary */}
+      <div className="admin-stats-grid" style={{ marginBottom: '20px' }}>
+        <div className="admin-stat-card" style={{ borderColor: '#f0b90b' }}>
+          <div className="stat-icon">⏳</div>
+          <div className="stat-info">
+            <span className="stat-label">Pending</span>
+            <span className="stat-value" style={{ color: '#f0b90b' }}>{totalPending}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card" style={{ borderColor: '#0ecb81' }}>
+          <div className="stat-icon">✅</div>
+          <div className="stat-info">
+            <span className="stat-label">Confirmed</span>
+            <span className="stat-value" style={{ color: '#0ecb81' }}>{totalCompleted}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card" style={{ borderColor: '#f6465d' }}>
+          <div className="stat-icon">❌</div>
+          <div className="stat-info">
+            <span className="stat-label">Failed</span>
+            <span className="stat-value" style={{ color: '#f6465d' }}>{totalFailed}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="stat-icon">💰</div>
+          <div className="stat-info">
+            <span className="stat-label">Total Volume</span>
+            <span className="stat-value">${totalAmount.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="admin-tabs">
+        <button 
+          className={`admin-tab ${activeTab === 'pending' ? 'active' : ''}`}
+          onClick={() => setActiveTab('pending')}
+        >
+          ⏳ Pending ({deposits.filter(d => d.status === 'pending').length})
+        </button>
+        <button 
+          className={`admin-tab ${activeTab === 'completed' ? 'active' : ''}`}
+          onClick={() => setActiveTab('completed')}
+        >
+          ✅ Completed ({deposits.filter(d => d.status === 'completed').length})
+        </button>
+        <button 
+          className={`admin-tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          📋 Approval History ({approvalHistory.length})
+        </button>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="admin-quick-actions">
+        <button 
+          className="quick-action success" 
+          onClick={() => {
+            const pending = deposits.filter(d => d.status === 'pending' && d.confirmations >= d.requiredConfirmations);
+            if (pending.length === 0) {
+              alert('No deposits ready to confirm');
+              return;
+            }
+            if (confirm(`Confirm ${pending.length} deposits with sufficient confirmations?`)) {
+              pending.forEach(d => handleConfirm(d.id));
+            }
+          }}
+        >
+          ✅ Confirm Ready Deposits
+        </button>
+        <button className="quick-action info">📊 Export Report</button>
+        <button className="quick-action primary">🔄 Refresh Status</button>
+      </div>
+
+      {/* Filters */}
+      <div className="admin-filters">
+        <div className="filter-group">
+          <input
+            type="text"
+            placeholder="🔍 Search by user or TxID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="filter-input"
+          />
+        </div>
+        <div className="filter-group">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="filter-select">
+            <option value="all">All Status</option>
+            <option value="pending">⏳ Pending</option>
+            <option value="completed">✅ Confirmed</option>
+            <option value="failed">❌ Failed</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <select value={filterAsset} onChange={(e) => setFilterAsset(e.target.value)} className="filter-select">
+            <option value="all">All Assets</option>
+            {assets.map(asset => (
+              <option key={asset} value={asset}>{asset}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Deposits Table */}
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Asset</th>
+              <th>Amount</th>
+              <th>Network</th>
+              <th>Confirmations</th>
+              <th>Status</th>
+              <th>Risk</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredDeposits.map(dp => (
+              <tr key={dp.id}>
+                <td style={{ fontFamily: 'monospace', fontSize: '12px' }}>
+                  {dp.id}
+                </td>
+                <td>
+                  <div className="user-cell">
+                    <div className="user-avatar-sm">{dp.user.charAt(0)}</div>
+                    <div>
+                      <div className="user-name">{dp.user}</div>
+                      <div className="user-email">{dp.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>{dp.asset}</td>
+                <td style={{ fontWeight: '600', color: '#0ecb81' }}>
+                  +{dp.amount}
+                </td>
+                <td style={{ fontSize: '12px', color: '#848e9c' }}>{dp.network}</td>
+                <td>
+                  <div className="confirmation-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ 
+                          width: `${getConfirmationProgress(dp)}%`,
+                          background: getConfirmationProgress(dp) >= 100 ? '#0ecb81' : '#f0b90b'
+                        }}
+                      ></div>
+                    </div>
+                    <span className="progress-text">
+                      {dp.confirmations}/{dp.requiredConfirmations}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span className="status-badge" style={{ background: getStatusColor(dp.status) + '20', color: getStatusColor(dp.status) }}>
+                    {getStatusIcon(dp.status)} {dp.status}
+                  </span>
+                </td>
+                <td>
+                  <span className="risk-badge" style={{ background: getRiskColor(dp.risk) + '20', color: getRiskColor(dp.risk) }}>
+                    {dp.risk}
+                  </span>
+                </td>
+                <td style={{ fontSize: '12px', color: '#848e9c' }}>
+                  {dp.timestamp.substring(11, 16)}
+                </td>
+                <td>
+                  <div className="action-buttons">
+                    <button className="action-btn view" onClick={() => handleViewDetails(dp)}>👁️</button>
+                    {dp.status === 'pending' && dp.confirmations >= dp.requiredConfirmations && (
+                      <button className="action-btn activate" onClick={() => handleConfirm(dp.id)}>✅</button>
+                    )}
+                    {dp.status === 'pending' && (
+                      <button className="action-btn delete" onClick={() => handleReject(dp.id)}>❌</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Detail Modal */}
+      {showDetailModal && selectedDeposit && (
+        <div className="admin-modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="admin-modal dp-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>📋 Deposit Details - {selectedDeposit.id}</h3>
+              <button className="modal-close" onClick={() => setShowDetailModal(false)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div className="dp-detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">User</span>
+                  <span className="detail-value">{selectedDeposit.user}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Email</span>
+                  <span className="detail-value">{selectedDeposit.email}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Asset</span>
+                  <span className="detail-value">{selectedDeposit.asset}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Amount</span>
+                  <span className="detail-value" style={{ color: '#0ecb81', fontWeight: '700' }}>
+                    +{selectedDeposit.amount} {selectedDeposit.asset}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Fee</span>
+                  <span className="detail-value">${selectedDeposit.fee}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Network</span>
+                  <span className="detail-value">{selectedDeposit.network}</span>
+                </div>
+                <div className="detail-item full-width">
+                  <span className="detail-label">Deposit Address</span>
+                  <span className="detail-value" style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
+                    {selectedDeposit.address}
+                  </span>
+                </div>
+                <div className="detail-item full-width">
+                  <span className="detail-label">TxID / Hash</span>
+                  <span className="detail-value" style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all' }}>
+                    {selectedDeposit.txid}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Status</span>
+                  <span className="detail-value" style={{ color: getStatusColor(selectedDeposit.status) }}>
+                    {getStatusIcon(selectedDeposit.status)} {selectedDeposit.status}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Risk Score</span>
+                  <span className="detail-value" style={{ color: getRiskColor(selectedDeposit.risk) }}>
+                    {selectedDeposit.risk}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Confirmations</span>
+                  <span className="detail-value">
+                    {selectedDeposit.confirmations}/{selectedDeposit.requiredConfirmations}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Timestamp</span>
+                  <span className="detail-value">{selectedDeposit.timestamp}</span>
+                </div>
+                <div className="detail-item full-width">
+                  <span className="detail-label">Notes</span>
+                  <span className="detail-value" style={{ color: selectedDeposit.status === 'failed' ? '#f6465d' : '#848e9c' }}>
+                    {selectedDeposit.notes || 'No notes'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              {selectedDeposit.status === 'pending' && (
+                <div className="dp-actions">
+                  {selectedDeposit.confirmations >= selectedDeposit.requiredConfirmations && (
+                    <button className="dp-btn approve" onClick={() => {
+                      handleConfirm(selectedDeposit.id);
+                      setShowDetailModal(false);
+                    }}>
+                      ✅ Confirm Deposit
+                    </button>
+                  )}
+                  <button className="dp-btn reject" onClick={() => {
+                    setShowDetailModal(false);
+                    handleReject(selectedDeposit.id);
+                  }}>
+                    ❌ Reject
+                  </button>
+                </div>
+              )}
+              <button className="modal-btn secondary" onClick={() => setShowDetailModal(false)} style={{ marginTop: '12px' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {showConfirmModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>✅ Confirm Deposit</h3>
+              <button className="modal-close" onClick={() => setShowConfirmModal(false)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ color: '#eaecef', marginBottom: '8px' }}>
+                Are you sure you want to confirm this deposit?
+              </p>
+              <p style={{ color: '#848e9c', marginBottom: '16px' }}>
+                The funds will be credited to the user's account immediately.
+              </p>
+              <div className="modal-actions">
+                <button className="modal-btn secondary" onClick={() => setShowConfirmModal(false)}>Cancel</button>
+                <button className="modal-btn primary" onClick={confirmDeposit}>Confirm Deposit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Deposits;

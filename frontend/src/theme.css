@@ -1,0 +1,35 @@
+:root {
+  --bg-primary: #0b0e11;
+  --bg-secondary: #1e2329;
+  --bg-card: #1e2329;
+  --bg-nav: #1e2329;
+  --bg-hover: #2b3139;
+  --text-primary: #eaecef;
+  --text-secondary: #b7bdc6;
+  --text-muted: #848e9c;
+  --border-color: #2b3139;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.6);
+  --success: #0ecb81;
+  --danger: #f6465d;
+  --warning: #f0b90b;
+  --info: #1e80ff;
+  --chart-bg: #131722;
+  --chart-grid: #2a2e39;
+}
+
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-card: #ffffff;
+  --bg-nav: #ffffff;
+  --bg-hover: #f0f0f0;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a4a6a;
+  --text-muted: #8a8aa0;
+  --border-color: #e8e8e8;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.12);
+  --chart-bg: #ffffff;
+  --chart-grid: #e8e8e8;
+}

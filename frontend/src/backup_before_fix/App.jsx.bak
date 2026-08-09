@@ -1,0 +1,104 @@
+import React, { useState, useEffect, useContext } from 'react';
+import './App.css';
+import './theme.css';
+
+// Layout Components
+import Header from './components/Layout/Header';
+import BottomNav from './components/Layout/BottomNav';
+
+// Page Components
+import Dashboard from './components/Dashboard';
+import Markets from './components/Markets';
+import Trade from './components/Trade';
+import Contracts from './components/Contracts';
+import Assets from './components/Assets';
+import Settings from './components/Settings';
+import Account from './components/Account';
+
+// Context
+import { ThemeProvider } from './context/ThemeContext';
+import { AuthProvider, AuthContext } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
+
+// Main App Content
+const AppContent = () => {
+  const [activePage, setActivePage] = useState('dashboard');
+  const [isLoading, setIsLoading] = useState(true);
+  const { setIsLoggedIn, setUser, setBalance, setOrders, setTradeHistory } = useContext(AuthContext);
+
+  useEffect(() => {
+    setIsLoggedIn(true);
+    setUser({ 
+      name: 'Alice', 
+      email: 'alice@tradeflow.com',
+      tier: 'Silver',
+      joined: 'Jan 15, 2024'
+    });
+    setBalance(154500);
+    setOrders([]);
+    setTradeHistory([
+      { id: 1, pair: 'BTC/USDT', side: 'buy', price: 61000, amount: 0.5, pnl: 345, time: '2 hours ago' },
+      { id: 2, pair: 'ETH/USDT', side: 'sell', price: 1760, amount: 2.0, pnl: -120, time: '5 hours ago' },
+      { id: 3, pair: 'SOL/USDT', side: 'buy', price: 150, amount: 50, pnl: 230, time: '1 day ago' },
+      { id: 4, pair: 'BTC/USDT', side: 'sell', price: 62000, amount: 0.3, pnl: 180, time: '2 days ago' },
+      { id: 5, pair: 'ETH/USDT', side: 'buy', price: 1740, amount: 1.5, pnl: -45, time: '3 days ago' },
+    ]);
+    setIsLoading(false);
+  }, [setIsLoggedIn, setUser, setBalance, setOrders, setTradeHistory]);
+
+  if (isLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner">🚀</div>
+        <p style={{ color: '#848e9c' }}>TradeFlow Loading...</p>
+      </div>
+    );
+  }
+
+  const renderPage = () => {
+    switch(activePage) {
+      case 'dashboard': 
+        return <Dashboard setActivePage={setActivePage} />;
+      case 'markets': 
+        return <Markets setActivePage={setActivePage} />;
+      case 'trade': 
+        return <Trade />;
+      case 'contracts': 
+        return <Contracts />;
+      case 'assets': 
+        return <Assets />;
+      case 'settings': 
+        return <Settings />;
+      case 'account': 
+        return <Account />;
+      default: 
+        return <Dashboard setActivePage={setActivePage} />;
+    }
+  };
+
+  return (
+    <div className="app">
+      <Header activePage={activePage} setActivePage={setActivePage} />
+      <div className="app-body">
+        <main className="main-content">
+          {renderPage()}
+        </main>
+      </div>
+      <BottomNav activePage={activePage} setActivePage={setActivePage} />
+    </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;

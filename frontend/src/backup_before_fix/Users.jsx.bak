@@ -1,0 +1,272 @@
+import React, { useState } from 'react';
+
+const Users = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterKYC, setFilterKYC] = useState('all');
+  const [filterVIP, setFilterVIP] = useState('all');
+
+  // Mock user data
+  const [users, setUsers] = useState([
+    { id: 1, name: 'Alice Johnson', email: 'alice@email.com', status: 'active', kycLevel: 2, vipTier: 'Silver', balance: 154500, trades: 142, joined: '2024-01-15', lastLogin: '2 mins ago' },
+    { id: 2, name: 'Bob Smith', email: 'bob@email.com', status: 'active', kycLevel: 3, vipTier: 'Gold', balance: 452000, trades: 523, joined: '2023-11-20', lastLogin: '1 hour ago' },
+    { id: 3, name: 'Charlie Lee', email: 'charlie@email.com', status: 'suspended', kycLevel: 1, vipTier: 'Bronze', balance: 2300, trades: 12, joined: '2024-06-01', lastLogin: '3 days ago' },
+    { id: 4, name: 'Diana Park', email: 'diana@email.com', status: 'active', kycLevel: 2, vipTier: 'Silver', balance: 87600, trades: 89, joined: '2024-03-10', lastLogin: '15 mins ago' },
+    { id: 5, name: 'Ethan Wu', email: 'ethan@email.com', status: 'pending', kycLevel: 0, vipTier: 'Bronze', balance: 150, trades: 0, joined: '2024-07-16', lastLogin: '1 day ago' },
+    { id: 6, name: 'Fiona Zhang', email: 'fiona@email.com', status: 'active', kycLevel: 3, vipTier: 'Platinum', balance: 1250000, trades: 2456, joined: '2023-08-05', lastLogin: '5 mins ago' },
+    { id: 7, name: 'George Kim', email: 'george@email.com', status: 'active', kycLevel: 2, vipTier: 'Gold', balance: 234000, trades: 789, joined: '2024-02-14', lastLogin: '2 hours ago' },
+    { id: 8, name: 'Hannah Chen', email: 'hannah@email.com', status: 'suspended', kycLevel: 1, vipTier: 'Bronze', balance: 4500, trades: 23, joined: '2024-05-20', lastLogin: '5 days ago' },
+  ]);
+
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'active': return '#0ecb81';
+      case 'suspended': return '#f6465d';
+      case 'pending': return '#f0b90b';
+      default: return '#848e9c';
+    }
+  };
+
+  const getKYCLabel = (level) => {
+    switch(level) {
+      case 0: return 'None';
+      case 1: return 'Basic';
+      case 2: return 'Verified';
+      case 3: return 'Advanced';
+      default: return 'Unknown';
+    }
+  };
+
+  const getVIPLabel = (tier) => {
+    const icons = { 'Bronze': '🥉', 'Silver': '🥈', 'Gold': '🥇', 'Platinum': '💎' };
+    return `${icons[tier] || ''} ${tier}`;
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+    const matchesKYC = filterKYC === 'all' || user.kycLevel === parseInt(filterKYC);
+    const matchesVIP = filterVIP === 'all' || user.vipTier.toLowerCase() === filterVIP.toLowerCase();
+    return matchesSearch && matchesStatus && matchesKYC && matchesVIP;
+  });
+
+  const handleSuspend = (id) => {
+    if (confirm('Are you sure you want to suspend this user?')) {
+      setUsers(users.map(u => u.id === id ? { ...u, status: 'suspended' } : u));
+      alert('✅ User suspended');
+    }
+  };
+
+  const handleActivate = (id) => {
+    setUsers(users.map(u => u.id === id ? { ...u, status: 'active' } : u));
+    alert('✅ User activated');
+  };
+
+  const handleDelete = (id) => {
+    if (confirm('⚠️ Are you sure you want to PERMANENTLY delete this user? This cannot be undone!')) {
+      setUsers(users.filter(u => u.id !== id));
+      alert('✅ User deleted');
+    }
+  };
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setShowUserModal(true);
+  };
+
+  return (
+    <div className="admin-page">
+      <h2>👤 User Management</h2>
+      <p>View, search, and manage all platform users</p>
+
+      {/* Stats Summary */}
+      <div className="admin-stats-grid" style={{ marginBottom: '20px' }}>
+        <div className="admin-stat-card">
+          <div className="stat-icon">👤</div>
+          <div className="stat-info">
+            <span className="stat-label">Total Users</span>
+            <span className="stat-value">{users.length}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="stat-icon">🟢</div>
+          <div className="stat-info">
+            <span className="stat-label">Active</span>
+            <span className="stat-value">{users.filter(u => u.status === 'active').length}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="stat-icon">🔴</div>
+          <div className="stat-info">
+            <span className="stat-label">Suspended</span>
+            <span className="stat-value">{users.filter(u => u.status === 'suspended').length}</span>
+          </div>
+        </div>
+        <div className="admin-stat-card">
+          <div className="stat-icon">⏳</div>
+          <div className="stat-info">
+            <span className="stat-label">Pending</span>
+            <span className="stat-value">{users.filter(u => u.status === 'pending').length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="admin-filters">
+        <div className="filter-group">
+          <input
+            type="text"
+            placeholder="🔍 Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="filter-input"
+          />
+        </div>
+        <div className="filter-group">
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="filter-select">
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="pending">Pending</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <select value={filterKYC} onChange={(e) => setFilterKYC(e.target.value)} className="filter-select">
+            <option value="all">All KYC</option>
+            <option value="0">None</option>
+            <option value="1">Basic</option>
+            <option value="2">Verified</option>
+            <option value="3">Advanced</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <select value={filterVIP} onChange={(e) => setFilterVIP(e.target.value)} className="filter-select">
+            <option value="all">All VIP</option>
+            <option value="bronze">🥉 Bronze</option>
+            <option value="silver">🥈 Silver</option>
+            <option value="gold">🥇 Gold</option>
+            <option value="platinum">💎 Platinum</option>
+          </select>
+        </div>
+        <button className="filter-action-btn primary">➕ Add User</button>
+      </div>
+
+      {/* User Table */}
+      <div className="admin-table-container">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Status</th>
+              <th>KYC</th>
+              <th>VIP</th>
+              <th>Balance</th>
+              <th>Trades</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredUsers.map(user => (
+              <tr key={user.id}>
+                <td>
+                  <div className="user-cell">
+                    <div className="user-avatar-sm">{user.name.charAt(0)}</div>
+                    <div>
+                      <div className="user-name">{user.name}</div>
+                      <div className="user-email">{user.email}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span className="status-badge" style={{ background: getStatusColor(user.status) + '20', color: getStatusColor(user.status) }}>
+                    {user.status}
+                  </span>
+                </td>
+                <td>{getKYCLabel(user.kycLevel)}</td>
+                <td>{getVIPLabel(user.vipTier)}</td>
+                <td>${user.balance.toLocaleString()}</td>
+                <td>{user.trades}</td>
+                <td>{user.joined}</td>
+                <td>
+                  <div className="action-buttons">
+                    <button className="action-btn view" onClick={() => handleViewUser(user)}>👁️</button>
+                    {user.status === 'suspended' ? (
+                      <button className="action-btn activate" onClick={() => handleActivate(user.id)}>✅</button>
+                    ) : (
+                      <button className="action-btn suspend" onClick={() => handleSuspend(user.id)}>⛔</button>
+                    )}
+                    <button className="action-btn delete" onClick={() => handleDelete(user.id)}>🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* User Modal */}
+      {showUserModal && selectedUser && (
+        <div className="admin-modal-overlay" onClick={() => setShowUserModal(false)}>
+          <div className="admin-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>👤 User Details</h3>
+              <button className="modal-close" onClick={() => setShowUserModal(false)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div className="user-detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Name</span>
+                  <span className="detail-value">{selectedUser.name}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Email</span>
+                  <span className="detail-value">{selectedUser.email}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Status</span>
+                  <span className="detail-value" style={{ color: getStatusColor(selectedUser.status) }}>{selectedUser.status}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">KYC Level</span>
+                  <span className="detail-value">{getKYCLabel(selectedUser.kycLevel)}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">VIP Tier</span>
+                  <span className="detail-value">{getVIPLabel(selectedUser.vipTier)}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Balance</span>
+                  <span className="detail-value">${selectedUser.balance.toLocaleString()}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Total Trades</span>
+                  <span className="detail-value">{selectedUser.trades}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Joined</span>
+                  <span className="detail-value">{selectedUser.joined}</span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Last Login</span>
+                  <span className="detail-value">{selectedUser.lastLogin}</span>
+                </div>
+              </div>
+              <div className="modal-actions">
+                <button className="modal-btn secondary" onClick={() => setShowUserModal(false)}>Close</button>
+                <button className="modal-btn primary">Edit User</button>
+                <button className="modal-btn danger">Delete User</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Users;

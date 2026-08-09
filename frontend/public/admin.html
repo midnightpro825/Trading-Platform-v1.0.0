@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - TradeFlow</title>
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        if (token && userData.role === 'admin') {
+            window.location.href = '/admin';
+        } else {
+            window.location.href = '/admin-login.html';
+        }
+    </script>
+</head>
+<body>
+    <div style="display:flex;justify-content:center;align-items:center;height:100vh;background:#0a0b0e;color:#e8eaed;font-family:sans-serif;">
+        <div style="text-align:center;">
+            <div style="font-size:40px;">👑</div>
+            <p>Loading admin panel...</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+﻿# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production
+.env.backup*
+.env.*.backup
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.sqlite
+*.db
+*.sql
+migrations/
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Project specific
+backend/uploads/
+backend/temp/
+frontend/public/images/wallets/
+deploy/
+*.ps1
+!Push-To-GitHub.ps1
+
+# Security
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Testing
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose.override.yml
+
+# PM2
+.pm2/
+
+# Environment backups
+*.env.backup
+
+# Node modules in backend/frontend
+**/node_modules/

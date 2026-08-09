@@ -1,0 +1,187 @@
+import React, { useState, useEffect } from 'react';
+import AdminLayout from '../layouts/AdminLayout';
+
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalUsers: 1542,
+    activeUsers: 1234,
+    newUsersToday: 23,
+    totalVolume: 2450000000,
+    activeOrders: 342,
+    pendingWithdrawals: 12,
+    pendingKYC: 8,
+    revenue: 124500,
+    uptime: '99.97%',
+  });
+
+  const [recentActivity, setRecentActivity] = useState([
+    { id: 1, type: 'user', action: 'New user registered', user: 'john@email.com', time: '2 mins ago' },
+    { id: 2, type: 'kyc', action: 'KYC submitted', user: 'sarah@email.com', time: '15 mins ago' },
+    { id: 3, type: 'trade', action: 'BTC/USDT trade executed', user: 'alice@email.com', time: '1 hour ago' },
+    { id: 4, type: 'withdrawal', action: 'Withdrawal requested', user: 'bob@email.com', time: '2 hours ago' },
+    { id: 5, type: 'deposit', action: 'USDT deposit confirmed', user: 'charlie@email.com', time: '3 hours ago' },
+  ]);
+
+  const [userGrowthData] = useState([
+    { day: 'Mon', users: 12 },
+    { day: 'Tue', users: 19 },
+    { day: 'Wed', users: 15 },
+    { day: 'Thu', users: 27 },
+    { day: 'Fri', users: 22 },
+    { day: 'Sat', users: 14 },
+    { day: 'Sun', users: 23 },
+  ]);
+
+  const maxUsers = Math.max(...userGrowthData.map(d => d.users));
+
+  return (
+    <AdminLayout activePage="dashboard">
+      <div className="admin-dashboard">
+        {/* Stats Grid */}
+        <div className="admin-stats-grid">
+          <div className="admin-stat-card">
+            <div className="stat-icon">👤</div>
+            <div className="stat-info">
+              <span className="stat-label">Total Users</span>
+              <span className="stat-value">{stats.totalUsers.toLocaleString()}</span>
+              <span className="stat-change positive">+12% this month</span>
+            </div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="stat-icon">📈</div>
+            <div className="stat-info">
+              <span className="stat-label">Trading Volume</span>
+              <span className="stat-value">${(stats.totalVolume / 1000000).toFixed(1)}M</span>
+              <span className="stat-change positive">+18.5%</span>
+            </div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="stat-icon">💰</div>
+            <div className="stat-info">
+              <span className="stat-label">Revenue</span>
+              <span className="stat-value">${stats.revenue.toLocaleString()}</span>
+              <span className="stat-change positive">+8.2%</span>
+            </div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="stat-icon">⏳</div>
+            <div className="stat-info">
+              <span className="stat-label">Pending KYC</span>
+              <span className="stat-value">{stats.pendingKYC}</span>
+              <span className="stat-change negative">+3 pending</span>
+            </div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="stat-icon">📤</div>
+            <div className="stat-info">
+              <span className="stat-label">Pending Withdrawals</span>
+              <span className="stat-value">{stats.pendingWithdrawals}</span>
+              <span className="stat-change">Need review</span>
+            </div>
+          </div>
+          <div className="admin-stat-card">
+            <div className="stat-icon">🟢</div>
+            <div className="stat-info">
+              <span className="stat-label">System Uptime</span>
+              <span className="stat-value">{stats.uptime}</span>
+              <span className="stat-change positive">All systems go</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="admin-quick-actions">
+          <button className="quick-action primary">➕ Add User</button>
+          <button className="quick-action warning">🪪 Review KYC</button>
+          <button className="quick-action success">✅ Approve Withdrawals</button>
+          <button className="quick-action info">📢 Broadcast Message</button>
+          <button className="quick-action danger">🛡️ Security Scan</button>
+        </div>
+
+        {/* Charts & Activity */}
+        <div className="admin-grid-2col">
+          {/* User Growth Chart */}
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h3>📊 User Growth</h3>
+              <span className="card-badge">This Week</span>
+            </div>
+            <div className="user-growth-chart">
+              {userGrowthData.map((item, i) => {
+                const height = (item.users / maxUsers) * 100;
+                return (
+                  <div key={i} className="chart-column">
+                    <div className="chart-bar" style={{ height: `${height}%` }}></div>
+                    <span className="chart-label">{item.day}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="admin-card">
+            <div className="admin-card-header">
+              <h3>🔄 Recent Activity</h3>
+              <span className="card-badge">Live</span>
+            </div>
+            <div className="activity-list">
+              {recentActivity.map((item) => (
+                <div key={item.id} className="activity-item">
+                  <span className={`activity-type ${item.type}`}>
+                    {item.type === 'user' && '👤'}
+                    {item.type === 'kyc' && '🪪'}
+                    {item.type === 'trade' && '📈'}
+                    {item.type === 'withdrawal' && '📤'}
+                    {item.type === 'deposit' && '📥'}
+                  </span>
+                  <div className="activity-info">
+                    <span className="activity-action">{item.action}</span>
+                    <span className="activity-user">{item.user}</span>
+                  </div>
+                  <span className="activity-time">{item.time}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* System Health */}
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <h3>🖥️ System Health</h3>
+            <span className="card-badge">All systems operational</span>
+          </div>
+          <div className="health-grid">
+            <div className="health-item">
+              <span className="health-label">Server</span>
+              <span className="health-status good">🟢 Online</span>
+            </div>
+            <div className="health-item">
+              <span className="health-label">Database</span>
+              <span className="health-status good">🟢 Connected</span>
+            </div>
+            <div className="health-item">
+              <span className="health-label">WebSocket</span>
+              <span className="health-status good">🟢 1,234 clients</span>
+            </div>
+            <div className="health-item">
+              <span className="health-label">API Response</span>
+              <span className="health-status good">🟢 45ms</span>
+            </div>
+            <div className="health-item">
+              <span className="health-label">Redis Cache</span>
+              <span className="health-status good">🟢 Hit 92%</span>
+            </div>
+            <div className="health-item">
+              <span className="health-label">Queue Workers</span>
+              <span className="health-status good">🟢 5 active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default Dashboard;
