@@ -1,32 +1,20 @@
-{
+﻿{
   "name": "tradeflow-backend",
   "version": "1.0.0",
   "description": "TradeFlow Exchange Backend",
-  "main": "src/server.js",
+  "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "dev": "nodemon src/server.js",
-    "audit:fix": "npm audit fix --force",
-    "security:check": "npm audit"
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.22.0",
-    "ws": "^8.21.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.14"
-  },
-  "overrides": {
-    "brace-expansion": "^5.0.8",
-    "shell-quote": "^1.9.0"
-  },
-  "resolutions": {
-    "brace-expansion": "^5.0.8",
-    "shell-quote": "^1.9.0"
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
+    "ws": "^8.16.0"
   }
 }

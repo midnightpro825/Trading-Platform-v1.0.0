@@ -1,0 +1,26 @@
+﻿services:
+  - type: web
+    name: trading-platform
+    env: node
+    buildCommand: npm install && cd frontend && npm install && npm run build
+    startCommand: node backend/server.js
+    plan: free
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        value: https://trading-platform-v1-0-0-1.onrender.com
