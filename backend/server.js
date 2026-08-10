@@ -22,6 +22,7 @@ const pool = new Pool({
 pool.connect((err) => {
     if (err) {
         console.error('❌ Database connection error:', err.message);
+        console.log('⚠️ Running with limited functionality - database not available');
     } else {
         console.log('✅ Connected to PostgreSQL database');
     }
@@ -83,7 +84,6 @@ app.post('/api/auth/register', async (req, res) => {
         
         console.log('📝 Registration attempt:', { name, email, username });
         
-        // Validate input - ALL fields required
         if (!email || !password || !name || !username) {
             return res.status(400).json({ 
                 success: false, 
@@ -92,7 +92,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Validate email format
         if (!email.includes('@') || !email.includes('.')) {
             return res.status(400).json({
                 success: false,
@@ -101,7 +100,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Validate password length
         if (password.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -110,7 +108,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Check if email already exists
         const emailCheck = await pool.query(
             'SELECT id FROM users WHERE email = $1',
             [email]
@@ -124,7 +121,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Check if username already exists
         const usernameCheck = await pool.query(
             'SELECT id FROM users WHERE username = $1',
             [username]
@@ -138,11 +134,9 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // Create user - use provided username, no fallback
         const result = await pool.query(
             `INSERT INTO users (username, email, password, first_name, role, is_active, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
@@ -152,7 +146,6 @@ app.post('/api/auth/register', async (req, res) => {
         
         const user = result.rows[0];
         
-        // Create default balances for new user
         const defaultAssets = ['USDT', 'BTC', 'ETH', 'SOL'];
         for (const asset of defaultAssets) {
             await pool.query(
@@ -162,14 +155,12 @@ app.post('/api/auth/register', async (req, res) => {
             );
         }
         
-        // Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES }
         );
         
-        // Return proper user data
         const userResponse = {
             id: user.id,
             name: user.first_name || user.username,
@@ -192,7 +183,6 @@ app.post('/api/auth/register', async (req, res) => {
     } catch (error) {
         console.error('❌ Registration error:', error);
         
-        // Handle PostgreSQL duplicate key error
         if (error.code === '23505') {
             if (error.constraint === 'users_username_key') {
                 return res.status(400).json({
@@ -227,7 +217,6 @@ app.post('/api/auth/login', async (req, res) => {
         
         console.log('🔐 Login attempt:', { email });
         
-        // Validate input
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -235,14 +224,12 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // Find user in database
         const result = await pool.query(
             `SELECT id, username, email, password, first_name, role, is_active
              FROM users WHERE email = $1`,
             [email]
         );
         
-        // ✅ CHECK IF USER EXISTS
         if (result.rows.length === 0) {
             console.log('❌ Login failed: User not found:', email);
             return res.status(401).json({
@@ -253,7 +240,6 @@ app.post('/api/auth/login', async (req, res) => {
         
         const user = result.rows[0];
         
-        // ✅ CHECK IF ACCOUNT IS ACTIVE
         if (!user.is_active) {
             console.log('❌ Login failed: Account deactivated:', email);
             return res.status(403).json({
@@ -262,7 +248,6 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // ✅ VERIFY PASSWORD
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
             console.log('❌ Login failed: Invalid password for:', email);
@@ -272,14 +257,12 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // ✅ ALL CHECKS PASSED - Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES }
         );
         
-        // Update last login
         await pool.query(
             'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
             [user.id]
@@ -322,7 +305,6 @@ app.post('/api/auth/logout', (req, res) => {
 // USER ENDPOINTS
 // ============================================================
 
-// Get user profile
 app.get('/api/user/profile', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -1198,9 +1180,52 @@ setInterval(() => {
 }, 3000);
 
 // ============================================================
+// SERVE FRONTEND - MUST BE BEFORE server.listen()
+// ============================================================
+
+// Serve static files from frontend dist
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Handle root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// ALL non-API routes go to index.html (React Router)
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return next();
+    }
+    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+});
+
+// ============================================================
+// ERROR HANDLING - Keep server running
+// ============================================================
+
+// Catch-all error handler
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+});
+
+// Handle uncaught exceptions - keep server running
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    console.log('⚠️ Keeping server running despite error');
+});
+
+process.on('unhandledRejection', (err) => {
+    console.error('❌ Unhandled Rejection:', err);
+    console.log('⚠️ Keeping server running despite error');
+});
+
+console.log('✅ Error handlers registered');
+
+// ============================================================
 // START SERVER
 // ============================================================
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 10000;
 
 server.listen(PORT, () => {
     console.log('');
@@ -1240,22 +1265,4 @@ server.listen(PORT, () => {
     console.log('║                                                          ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
     console.log('');
-});
-// ============================================================
-// SERVE FRONTEND - ADDED BY DEPLOYMENT FIX
-
-// Serve static files from frontend dist
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// Handle root route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
-});
-
-// ALL non-API routes go to index.html (React Router)
-app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        return next();
-    }
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
