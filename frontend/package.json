@@ -7,11 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview",
-    "audit:fix": "npm audit fix --force",
-    "security:check": "npm audit"
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@vitejs/plugin-react": "^4.3.0",
     "axios": "^1.18.1",
     "lightweight-charts": "^4.1.3",
     "react": "^19.2.3",
