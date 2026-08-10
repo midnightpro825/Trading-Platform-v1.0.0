@@ -11,13 +11,23 @@ const { Pool } = require('pg');
 // ============================================================
 // DATABASE CONNECTION
 // ============================================================
+// ============================================================
+// DATABASE CONNECTION
+// ============================================================
 const pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
+    connectionString: process.env.DATABASE_URL || process.env.DB_URL,
+    host: process.env.DB_HOST,
     port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || 'tradeflow',
-    user: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'postgres',
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
 });
+
+// Log connection info (without password)
+console.log('📁 Database Configuration:');
+console.log(`   Host: ${process.env.DB_HOST || 'Using DATABASE_URL'}`);
+console.log(`   Database: ${process.env.DB_NAME || 'Using DATABASE_URL'}`);
+console.log(`   User: ${process.env.DB_USER || 'Using DATABASE_URL'}`);
 
 pool.connect((err) => {
     if (err) {
