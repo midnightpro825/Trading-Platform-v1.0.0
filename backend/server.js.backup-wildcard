@@ -1253,7 +1253,7 @@ app.get('/', (req, res) => {
 });
 
 // ALL non-API routes go to index.html (React Router)
-app.use((req, res, next) => {
+app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
         return next();
     }
