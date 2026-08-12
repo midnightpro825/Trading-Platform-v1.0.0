@@ -282,8 +282,8 @@ app.get('/api/trades', (req, res) => {
 // ✅ SPA FALLBACK - Serve index.html for any unknown routes
 // This MUST be after all API routes
 // ============================================================
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'backend', 'public', 'index.html'));
+app.get('/*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'backend', 'public', 'index.html'));
 });
 
 // ============================================================
