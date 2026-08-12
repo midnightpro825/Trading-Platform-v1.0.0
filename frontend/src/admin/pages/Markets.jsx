@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Markets = () => {
-  // ===== STATE =====
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,10 +12,10 @@ const Markets = () => {
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState('');
   const [confirmId, setConfirmId] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
     pair: '',
     baseAsset: '',
@@ -27,8 +29,9 @@ const Markets = () => {
     status: 'active'
   });
   const [stats, setStats] = useState({ total: 0, active: 0, paused: 0, maintenance: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
-  // ===== FETCH MARKETS =====
   useEffect(() => {
     fetchMarkets();
     fetchStats();
@@ -38,7 +41,8 @@ const Markets = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/markets', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/markets`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMarkets(response.data || []);
@@ -129,7 +133,7 @@ const Markets = () => {
           quoteAsset: 'USDT',
           price: 0.12,
           change24h: -3.25,
-          volume24h: 890000000,
+          volume24h: 89000000,
           minAmount: 1,
           maxAmount: 1000000,
           minPrice: 0.0001,
@@ -148,7 +152,7 @@ const Markets = () => {
           quoteAsset: 'USD',
           price: 2350.00,
           change24h: 0.35,
-          volume24h: 1200000000,
+          volume24h: 120000000,
           minAmount: 0.001,
           maxAmount: 100,
           minPrice: 0.01,
@@ -169,7 +173,8 @@ const Markets = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -185,7 +190,6 @@ const Markets = () => {
     }
   };
 
-  // ===== MARKET ACTIONS =====
   const handleAction = async (action, market) => {
     console.log(`🔘 ${action} clicked for market:`, market);
 
@@ -209,6 +213,7 @@ const Markets = () => {
           takerFee: market.takerFee,
           status: market.status
         });
+        setIsAdding(false);
         setShowEditModal(true);
         break;
 
@@ -231,13 +236,14 @@ const Markets = () => {
         break;
 
       case 'delete':
-        if (confirm(`⚠️ Permanently delete market ${market.pair}?`)) {
+        if (confirm(`⚠ Permanently delete market ${market.pair}?`)) {
           try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8081/api/admin/markets/${market.id}`, {
+            // ✅ FIXED: Use API_URL
+            await axios.delete(`${API_URL}/api/admin/markets/${market.id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
-            alert(`🗑️ Market ${market.pair} deleted`);
+            alert(`🗑 Market ${market.pair} deleted`);
             fetchMarkets();
             fetchStats();
           } catch (error) {
@@ -251,11 +257,11 @@ const Markets = () => {
     }
   };
 
-  // ===== CONFIRM STATUS CHANGE =====
   const confirmStatusChange = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8081/api/admin/markets/${confirmId}/status`,
+      // ✅ FIXED: Use API_URL
+      await axios.put(`${API_URL}/api/admin/markets/${confirmId}/status`,
         { status: confirmAction === 'pause' ? 'paused' : confirmAction === 'activate' ? 'active' : 'maintenance' },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -270,23 +276,23 @@ const Markets = () => {
     }
   };
 
-  // ===== SAVE MARKET =====
   const saveMarket = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (showAddModal) {
-        await axios.post('http://localhost:8081/api/admin/markets', formData, {
+      if (isAdding) {
+        // ✅ FIXED: Use API_URL
+        await axios.post(`${API_URL}/api/admin/markets`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('✅ Market added successfully!');
       } else {
-        await axios.put(`http://localhost:8081/api/admin/markets/${selectedMarket.id}`, formData, {
+        // ✅ FIXED: Use API_URL
+        await axios.put(`${API_URL}/api/admin/markets/${selectedMarket.id}`, formData, {
           headers: { Authorization: `Bearer ${token}` }
         });
         alert('✅ Market updated successfully!');
       }
       setShowEditModal(false);
-      setShowAddModal(false);
       fetchMarkets();
       fetchStats();
     } catch (error) {
@@ -294,7 +300,7 @@ const Markets = () => {
     }
   };
 
-  // ===== FILTER MARKETS =====
+  // Filter markets
   const filteredMarkets = markets.filter(market => {
     const matchesSearch = market.pair?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           market.baseAsset?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -303,9 +309,7 @@ const Markets = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // ===== PAGINATION =====
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  // Pagination
   const totalPages = Math.ceil(filteredMarkets.length / itemsPerPage);
   const paginatedMarkets = filteredMarkets.slice(
     (currentPage - 1) * itemsPerPage,
@@ -324,7 +328,7 @@ const Markets = () => {
   const getStatusIcon = (status) => {
     switch(status) {
       case 'active': return '🟢';
-      case 'paused': return '⏸️';
+      case 'paused': return '⏸';
       case 'maintenance': return '🔧';
       default: return '⚪';
     }
@@ -368,7 +372,7 @@ const Markets = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Filters and Actions */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -406,11 +410,14 @@ const Markets = () => {
         >
           <option value="all">All Status</option>
           <option value="active">🟢 Active</option>
-          <option value="paused">⏸️ Paused</option>
+          <option value="paused">⏸ Paused</option>
           <option value="maintenance">🔧 Maintenance</option>
         </select>
         <button
-          onClick={() => { setSearchTerm(''); setFilterStatus('all'); }}
+          onClick={() => {
+            setSearchTerm('');
+            setFilterStatus('all');
+          }}
           style={{
             padding: '8px 16px',
             background: 'rgba(255,255,255,0.04)',
@@ -423,7 +430,22 @@ const Markets = () => {
           Clear Filters
         </button>
         <button
-          onClick={() => { setShowAddModal(true); setFormData({ pair: '', baseAsset: '', quoteAsset: '', minAmount: 0.0001, maxAmount: 100, minPrice: 0.01, maxPrice: 1000000, makerFee: 0.001, takerFee: 0.001, status: 'active' }); }}
+          onClick={() => {
+            setIsAdding(true);
+            setFormData({
+              pair: '',
+              baseAsset: '',
+              quoteAsset: '',
+              minAmount: 0.0001,
+              maxAmount: 100,
+              minPrice: 0.01,
+              maxPrice: 1000000,
+              makerFee: 0.001,
+              takerFee: 0.001,
+              status: 'active'
+            });
+            setShowEditModal(true);
+          }}
           style={{
             padding: '8px 20px',
             background: '#f0b90b',
@@ -537,7 +559,7 @@ const Markets = () => {
                             style={{ padding: '4px 8px', background: '#f0b90b', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }}
                             title="Pause"
                           >
-                            ⏸️
+                            ⏸
                           </button>
                           <button
                             onClick={() => handleAction('maintenance', market)}
@@ -548,16 +570,7 @@ const Markets = () => {
                           </button>
                         </>
                       )}
-                      {market.status === 'paused' && (
-                        <button
-                          onClick={() => handleAction('activate', market)}
-                          style={{ padding: '4px 8px', background: '#0ecb81', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }}
-                          title="Activate"
-                        >
-                          ▶️
-                        </button>
-                      )}
-                      {market.status === 'maintenance' && (
+                      {(market.status === 'paused' || market.status === 'maintenance') && (
                         <button
                           onClick={() => handleAction('activate', market)}
                           style={{ padding: '4px 8px', background: '#0ecb81', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }}
@@ -644,7 +657,7 @@ const Markets = () => {
         </div>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
+      {/* Detail Modal */}
       {showDetailModal && selectedMarket && (
         <div style={{
           position: 'fixed',
@@ -681,8 +694,12 @@ const Markets = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Current Price</span><div style={{ color: '#f0b90b', fontWeight: '600' }}>${selectedMarket.price?.toFixed(2)}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>24h Change</span>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Current Price</span>
+                <div style={{ color: '#f0b90b', fontWeight: '600' }}>${selectedMarket.price?.toFixed(2)}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>24h Change</span>
                 <div style={{
                   color: (selectedMarket.change24h || 0) >= 0 ? '#0ecb81' : '#f6465d',
                   fontWeight: '600'
@@ -690,18 +707,40 @@ const Markets = () => {
                   {(selectedMarket.change24h || 0) >= 0 ? '+' : ''}{selectedMarket.change24h}%
                 </div>
               </div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>24h Volume</span><div style={{ color: '#eaecef' }}>${(selectedMarket.volume24h / 1000000).toFixed(1)}M</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Status</span>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>24h Volume</span>
+                <div style={{ color: '#eaecef' }}>${(selectedMarket.volume24h / 1000000).toFixed(1)}M</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Status</span>
                 <div style={{ color: getStatusColor(selectedMarket.status) }}>
                   {getStatusIcon(selectedMarket.status)} {selectedMarket.status.charAt(0).toUpperCase() + selectedMarket.status.slice(1)}
                 </div>
               </div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Min Amount</span><div style={{ color: '#eaecef' }}>{selectedMarket.minAmount}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Max Amount</span><div style={{ color: '#eaecef' }}>{selectedMarket.maxAmount}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Min Price</span><div style={{ color: '#eaecef' }}>${selectedMarket.minPrice}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Max Price</span><div style={{ color: '#eaecef' }}>${selectedMarket.maxPrice}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Maker Fee</span><div style={{ color: '#eaecef' }}>{(selectedMarket.makerFee * 100).toFixed(2)}%</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Taker Fee</span><div style={{ color: '#eaecef' }}>{(selectedMarket.takerFee * 100).toFixed(2)}%</div></div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Min Amount</span>
+                <div style={{ color: '#eaecef' }}>{selectedMarket.minAmount}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Max Amount</span>
+                <div style={{ color: '#eaecef' }}>{selectedMarket.maxAmount}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Min Price</span>
+                <div style={{ color: '#eaecef' }}>${selectedMarket.minPrice}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Max Price</span>
+                <div style={{ color: '#eaecef' }}>${selectedMarket.maxPrice}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Maker Fee</span>
+                <div style={{ color: '#eaecef' }}>{(selectedMarket.makerFee * 100).toFixed(2)}%</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Taker Fee</span>
+                <div style={{ color: '#eaecef' }}>{(selectedMarket.takerFee * 100).toFixed(2)}%</div>
+              </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <span style={{ color: '#848e9c', fontSize: '13px' }}>Last Updated</span>
                 <div style={{ color: '#eaecef' }}>{selectedMarket.lastUpdated}</div>
@@ -718,8 +757,8 @@ const Markets = () => {
         </div>
       )}
 
-      {/* ===== EDIT/ADD MODAL ===== */}
-      {(showEditModal || showAddModal) && (
+      {/* Edit/Add Modal */}
+      {showEditModal && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -744,8 +783,8 @@ const Markets = () => {
             overflow: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0 }}>{showAddModal ? '➕ Add New Market' : '✏️ Edit Market'}</h3>
-              <button onClick={() => { setShowEditModal(false); setShowAddModal(false); }} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+              <h3 style={{ margin: 0 }}>{isAdding ? '➕ Add New Market' : '✏️ Edit Market'}</h3>
+              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -754,16 +793,16 @@ const Markets = () => {
                 <input
                   type="text"
                   value={formData.pair}
-                  onChange={(e) => setFormData({...formData, pair: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, pair: e.target.value })}
                   placeholder="e.g., BTC/USDT"
-                  disabled={!showAddModal}
+                  disabled={!isAdding}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: isAdding ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.06)',
                     borderRadius: '6px',
-                    color: showAddModal ? '#eaecef' : '#848e9c',
+                    color: isAdding ? '#eaecef' : '#848e9c',
                     fontSize: '14px'
                   }}
                 />
@@ -773,16 +812,16 @@ const Markets = () => {
                 <input
                   type="text"
                   value={formData.baseAsset}
-                  onChange={(e) => setFormData({...formData, baseAsset: e.target.value.toUpperCase()})}
+                  onChange={(e) => setFormData({ ...formData, baseAsset: e.target.value.toUpperCase() })}
                   placeholder="e.g., BTC"
-                  disabled={!showAddModal}
+                  disabled={!isAdding}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: isAdding ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.06)',
                     borderRadius: '6px',
-                    color: showAddModal ? '#eaecef' : '#848e9c',
+                    color: isAdding ? '#eaecef' : '#848e9c',
                     fontSize: '14px'
                   }}
                 />
@@ -792,16 +831,16 @@ const Markets = () => {
                 <input
                   type="text"
                   value={formData.quoteAsset}
-                  onChange={(e) => setFormData({...formData, quoteAsset: e.target.value.toUpperCase()})}
+                  onChange={(e) => setFormData({ ...formData, quoteAsset: e.target.value.toUpperCase() })}
                   placeholder="e.g., USDT"
-                  disabled={!showAddModal}
+                  disabled={!isAdding}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
-                    background: 'rgba(255,255,255,0.04)',
+                    background: isAdding ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
                     border: '1px solid rgba(255,255,255,0.06)',
                     borderRadius: '6px',
-                    color: showAddModal ? '#eaecef' : '#848e9c',
+                    color: isAdding ? '#eaecef' : '#848e9c',
                     fontSize: '14px'
                   }}
                 />
@@ -811,7 +850,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={formData.minAmount}
-                  onChange={(e) => setFormData({...formData, minAmount: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, minAmount: parseFloat(e.target.value) })}
                   step="0.0001"
                   style={{
                     width: '100%',
@@ -829,7 +868,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={formData.maxAmount}
-                  onChange={(e) => setFormData({...formData, maxAmount: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, maxAmount: parseFloat(e.target.value) })}
                   step="0.1"
                   style={{
                     width: '100%',
@@ -847,7 +886,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={formData.minPrice}
-                  onChange={(e) => setFormData({...formData, minPrice: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, minPrice: parseFloat(e.target.value) })}
                   step="0.0001"
                   style={{
                     width: '100%',
@@ -865,7 +904,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={formData.maxPrice}
-                  onChange={(e) => setFormData({...formData, maxPrice: parseFloat(e.target.value)})}
+                  onChange={(e) => setFormData({ ...formData, maxPrice: parseFloat(e.target.value) })}
                   step="0.1"
                   style={{
                     width: '100%',
@@ -883,7 +922,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={(formData.makerFee * 100).toFixed(2)}
-                  onChange={(e) => setFormData({...formData, makerFee: parseFloat(e.target.value) / 100})}
+                  onChange={(e) => setFormData({ ...formData, makerFee: parseFloat(e.target.value) / 100 })}
                   step="0.01"
                   style={{
                     width: '100%',
@@ -901,7 +940,7 @@ const Markets = () => {
                 <input
                   type="number"
                   value={(formData.takerFee * 100).toFixed(2)}
-                  onChange={(e) => setFormData({...formData, takerFee: parseFloat(e.target.value) / 100})}
+                  onChange={(e) => setFormData({ ...formData, takerFee: parseFloat(e.target.value) / 100 })}
                   step="0.01"
                   style={{
                     width: '100%',
@@ -918,7 +957,7 @@ const Markets = () => {
                 <label style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Status</label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -930,21 +969,31 @@ const Markets = () => {
                   }}
                 >
                   <option value="active">🟢 Active</option>
-                  <option value="paused">⏸️ Paused</option>
+                  <option value="paused">⏸ Paused</option>
                   <option value="maintenance">🔧 Maintenance</option>
                 </select>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button onClick={() => { setShowEditModal(false); setShowAddModal(false); }} style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={saveMarket} style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}>💾 Save</button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveMarket}
+                style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}
+              >
+                💾 Save
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== CONFIRM MODAL ===== */}
+      {/* Confirm Modal */}
       {showConfirmModal && (
         <div style={{
           position: 'fixed',

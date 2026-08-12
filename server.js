@@ -5,10 +5,42 @@ const WebSocket = require('ws');
 const axios = require('axios');
 const app = express();
 
-app.use(cors());
+// ============================================================
+// 🔧 FIX: CORS - Allow your domains + local development
+// ============================================================
+const allowedOrigins = [
+  'https://tradeflows.site',
+  'https://www.tradeflows.site',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
-const PORT = 8080;
+// ============================================================
+// 🔧 FIX: Use environment variable for port (Hostinger compatible)
+// ============================================================
+const PORT = process.env.PORT || 8080;
+// WebSocket port - can be same as HTTP port or different
+const WS_PORT = process.env.WS_PORT || PORT;
 
 // ============================================================
 // SIMPLE ORDER MATCHING ENGINE (In-Memory)
@@ -86,67 +118,88 @@ function getOrderBook() {
 }
 
 // ============================================================
-// WEBSOCKET SERVER
+// WEBSOCKET SERVER (Hostinger compatible)
 // ============================================================
-const wss = new WebSocket.Server({ port: 8081 });
+let wss = null;
 const clients = new Set();
 
-wss.on('connection', (ws) => {
-  console.log('🟢 Client connected');
-  clients.add(ws);
+// Try to start WebSocket server
+try {
+  // Try on same port first (for Hostinger)
+  if (WS_PORT === PORT) {
+    const server = app.listen(PORT);
+    wss = new WebSocket.Server({ server });
+    console.log(`✅ WebSocket running on same port ${WS_PORT}`);
+  } else {
+    // Different port (for local development)
+    wss = new WebSocket.Server({ port: WS_PORT });
+    console.log(`✅ WebSocket running on port ${WS_PORT}`);
+  }
+} catch (error) {
+  console.log('⚠️ WebSocket failed to start:', error.message);
+  console.log('📊 Falling back to HTTP polling mode (no WebSocket)');
+  wss = null;
+}
 
-  // Send initial data
-  ws.send(JSON.stringify({
-    type: 'connected',
-    message: 'Connected to TradeFlow WebSocket',
-    orderbook: getOrderBook()
-  }));
+if (wss) {
+  wss.on('connection', (ws) => {
+    console.log('🟢 Client connected');
+    clients.add(ws);
 
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      console.log('📩 Received:', data.type);
+    // Send initial data
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to TradeFlow WebSocket',
+      orderbook: getOrderBook()
+    }));
 
-      if (data.type === 'placeOrder') {
-        const order = addOrder(data.side, data.price, data.quantity, data.userId);
-        
-        // Broadcast updated order book
-        broadcast({
-          type: 'orderbook',
-          data: getOrderBook()
-        });
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message);
+        console.log('📩 Received:', data.type);
 
-        // Broadcast new trade if any
-        if (orderBook.trades.length > 0) {
-          const lastTrade = orderBook.trades[orderBook.trades.length - 1];
+        if (data.type === 'placeOrder') {
+          const order = addOrder(data.side, data.price, data.quantity, data.userId);
+          
+          // Broadcast updated order book
           broadcast({
-            type: 'trade',
-            data: lastTrade
+            type: 'orderbook',
+            data: getOrderBook()
           });
-        }
 
+          // Broadcast new trade if any
+          if (orderBook.trades.length > 0) {
+            const lastTrade = orderBook.trades[orderBook.trades.length - 1];
+            broadcast({
+              type: 'trade',
+              data: lastTrade
+            });
+          }
+
+          ws.send(JSON.stringify({
+            type: 'orderResult',
+            success: true,
+            orderId: order.id
+          }));
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
         ws.send(JSON.stringify({
-          type: 'orderResult',
-          success: true,
-          orderId: order.id
+          type: 'error',
+          message: error.message
         }));
       }
-    } catch (error) {
-      console.error('Error:', error.message);
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: error.message
-      }));
-    }
-  });
+    });
 
-  ws.on('close', () => {
-    console.log('🔴 Client disconnected');
-    clients.delete(ws);
+    ws.on('close', () => {
+      console.log('🔴 Client disconnected');
+      clients.delete(ws);
+    });
   });
-});
+}
 
 function broadcast(data) {
+  if (!wss) return;
   const message = JSON.stringify(data);
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
@@ -195,12 +248,22 @@ async function updatePrices() {
   });
 }
 
+// Start price updates (even if WebSocket fails)
 setInterval(updatePrices, 10000);
 updatePrices();
 
 // ============================================================
-// EXPRESS ROUTES
+// HTTP API ROUTES - FALLBACK FOR NON-WEBSOCKET CLIENTS
 // ============================================================
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    websocket: wss !== null,
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.get('/api/orderbook', (req, res) => {
   res.json(getOrderBook());
 });
@@ -227,18 +290,38 @@ app.get('/api/trades', (req, res) => {
 // ============================================================
 // START SERVER
 // ============================================================
-app.listen(PORT, () => {
+// Only start the server if it hasn't been started with WebSocket
+if (WS_PORT !== PORT) {
+  app.listen(PORT, () => {
+    console.log(`
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║   🚀 TRADEFLOW BACKEND STARTED                         ║
+║                                                          ║
+║   🌐 HTTP API: http://localhost:${PORT}                 ║
+║   📡 WebSocket: ${wss ? `ws://localhost:${WS_PORT}` : '❌ DISABLED (fallback mode)'}
+║                                                          ║
+║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
+║   🔄 Price Updates: Every 10 seconds                   ║
+║   🔒 CORS: Restricted to allowed domains               ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+    `);
+  });
+} else {
+  // Server already started with WebSocket
   console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
 ║   🚀 TRADEFLOW BACKEND STARTED                         ║
 ║                                                          ║
-║   📡 WebSocket: ws://localhost:8081                    ║
 ║   🌐 HTTP API: http://localhost:${PORT}                 ║
+║   📡 WebSocket: ws://localhost:${WS_PORT} (same port)  ║
 ║                                                          ║
 ║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
 ║   🔄 Price Updates: Every 10 seconds                   ║
+║   🔒 CORS: Restricted to allowed domains               ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
   `);
-});
+}

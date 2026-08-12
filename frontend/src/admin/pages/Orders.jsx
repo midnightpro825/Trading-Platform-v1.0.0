@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Orders = () => {
-  // ===== STATE =====
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,7 +19,6 @@ const Orders = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // ===== FETCH ORDERS =====
   useEffect(() => {
     fetchOrders();
     fetchStats();
@@ -27,7 +28,8 @@ const Orders = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/orders', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/orders`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setOrders(response.data || []);
@@ -61,9 +63,9 @@ const Orders = () => {
           pair: 'ETH/USDT',
           side: 'sell',
           type: 'market',
-          amount: 2.0,
+          amount: 2,
           price: 1748,
-          filled: 2.0,
+          filled: 2,
           remaining: 0,
           status: 'filled',
           leverage: 2,
@@ -139,7 +141,8 @@ const Orders = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -156,7 +159,6 @@ const Orders = () => {
     }
   };
 
-  // ===== ORDER ACTIONS =====
   const handleAction = async (action, order) => {
     console.log(`🔘 ${action} clicked for order:`, order);
 
@@ -176,14 +178,13 @@ const Orders = () => {
     }
   };
 
-  // ===== CANCEL ORDER =====
   const cancelOrder = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:8081/api/admin/orders/${cancelId}`, {
+      // ✅ FIXED: Use API_URL
+      await axios.delete(`${API_URL}/api/admin/orders/${cancelId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-
       alert(`❌ Order ${cancelId} cancelled`);
       setShowCancelModal(false);
       setCancelId(null);
@@ -194,7 +195,7 @@ const Orders = () => {
     }
   };
 
-  // ===== FILTER ORDERS =====
+  // Filter orders
   const filteredOrders = orders.filter(order => {
     const matchesSearch = (order.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (order.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,14 +206,15 @@ const Orders = () => {
     return matchesSearch && matchesSide && matchesStatus && matchesPair;
   });
 
-  // ===== PAGINATION =====
+  // Get unique pairs for filter
+  const pairs = [...new Set(orders.map(o => o.pair))];
+
+  // Pagination
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  const pairs = [...new Set(orders.map(o => o.pair))];
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -275,7 +277,7 @@ const Orders = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Filters */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -350,6 +352,24 @@ const Orders = () => {
           ))}
         </select>
         <button
+          onClick={() => {
+            setSearchTerm('');
+            setFilterSide('all');
+            setFilterStatus('all');
+            setFilterPair('all');
+          }}
+          style={{
+            padding: '8px 16px',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '6px',
+            color: '#848e9c',
+            cursor: 'pointer'
+          }}
+        >
+          Clear Filters
+        </button>
+        <button
           onClick={fetchOrders}
           style={{
             padding: '8px 16px',
@@ -376,14 +396,13 @@ const Orders = () => {
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Amount</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Price</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Time</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedOrders.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#848e9c' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#848e9c' }}>
                   <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
                   <p>No orders found</p>
                 </td>
@@ -400,7 +419,9 @@ const Orders = () => {
                       <div style={{ fontSize: '11px', color: '#848e9c' }}>{order.email}</div>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#f0b90b' }}>{order.pair}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#f0b90b' }}>
+                    {order.pair}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       color: order.side === 'buy' ? '#0ecb81' : '#f6465d',
@@ -411,15 +432,11 @@ const Orders = () => {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div>{order.amount}</div>
-                    <div style={{ fontSize: '11px', color: '#848e9c' }}>
-                      Filled: {order.filled || 0}
-                    </div>
+                    <div style={{ fontSize: '11px', color: '#848e9c' }}>Filled: {order.filled || 0}</div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div>${order.price}</div>
-                    <div style={{ fontSize: '11px', color: '#848e9c' }}>
-                      {order.leverage}x
-                    </div>
+                    <div style={{ fontSize: '11px', color: '#848e9c' }}>{order.leverage}x</div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
@@ -431,9 +448,6 @@ const Orders = () => {
                     }}>
                       {getStatusIcon(order.status)} {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#848e9c' }}>
-                    {order.timestamp}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -524,7 +538,7 @@ const Orders = () => {
         </div>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
+      {/* Detail Modal */}
       {showDetailModal && selectedOrder && (
         <div style={{
           position: 'fixed',
@@ -554,7 +568,6 @@ const Orders = () => {
               <button onClick={() => setShowDetailModal(false)} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
             </div>
 
-            {/* User Info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
               <div style={{
                 width: '48px',
@@ -596,16 +609,37 @@ const Orders = () => {
               </div>
             </div>
 
-            {/* Order Details */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Pair</span><div style={{ color: '#eaecef' }}>{selectedOrder.pair}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Type</span><div style={{ color: '#eaecef' }}>{selectedOrder.type}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Amount</span><div style={{ color: '#eaecef' }}>{selectedOrder.amount}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Price</span><div style={{ color: '#eaecef' }}>${selectedOrder.price}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Filled</span><div style={{ color: '#eaecef' }}>{selectedOrder.filled || 0}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Remaining</span><div style={{ color: '#eaecef' }}>{selectedOrder.remaining || 0}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Leverage</span><div style={{ color: '#eaecef' }}>{selectedOrder.leverage}x</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>P&L</span>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Pair</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.pair}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Type</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.type}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Amount</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.amount}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Price</span>
+                <div style={{ color: '#eaecef' }}>${selectedOrder.price}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Filled</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.filled || 0}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Remaining</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.remaining || 0}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Leverage</span>
+                <div style={{ color: '#eaecef' }}>{selectedOrder.leverage}x</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>P&L</span>
                 <div style={{
                   color: (selectedOrder.pnl || 0) >= 0 ? '#0ecb81' : '#f6465d',
                   fontWeight: '600'
@@ -613,8 +647,14 @@ const Orders = () => {
                   {(selectedOrder.pnl || 0) >= 0 ? '+' : ''}{selectedOrder.pnl || 0}
                 </div>
               </div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Stop Loss</span><div style={{ color: '#eaecef' }}>${selectedOrder.stopLoss || 'N/A'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Take Profit</span><div style={{ color: '#eaecef' }}>${selectedOrder.takeProfit || 'N/A'}</div></div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Stop Loss</span>
+                <div style={{ color: '#eaecef' }}>${selectedOrder.stopLoss || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Take Profit</span>
+                <div style={{ color: '#eaecef' }}>${selectedOrder.takeProfit || 'N/A'}</div>
+              </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <span style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Notes</span>
                 <div style={{
@@ -629,7 +669,6 @@ const Orders = () => {
               </div>
             </div>
 
-            {/* Actions */}
             {selectedOrder.status === 'open' && (
               <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
                 <button
@@ -650,7 +689,7 @@ const Orders = () => {
         </div>
       )}
 
-      {/* ===== CANCEL MODAL ===== */}
+      {/* Cancel Modal */}
       {showCancelModal && (
         <div style={{
           position: 'fixed',

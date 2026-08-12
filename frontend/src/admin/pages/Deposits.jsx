@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Deposits = () => {
   // ===== STATE =====
   const [deposits, setDeposits] = useState([]);
@@ -29,7 +32,8 @@ const Deposits = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/deposits/pending', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/deposits/pending`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setDeposits(response.data || []);
@@ -110,7 +114,8 @@ const Deposits = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -160,7 +165,8 @@ const Deposits = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8081/api/admin/deposits/${deposit.id}/approve`, {}, {
+      // ✅ FIXED: Use API_URL
+      await axios.put(`${API_URL}/api/admin/deposits/${deposit.id}/approve`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -183,7 +189,8 @@ const Deposits = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8081/api/admin/deposits/${rejectId}/reject`,
+      // ✅ FIXED: Use API_URL
+      await axios.put(`${API_URL}/api/admin/deposits/${rejectId}/reject`,
         { reason: rejectReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );

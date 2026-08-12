@@ -1,5 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 
+// ============================================================
+// 🔧 FIX: Use environment variable for WebSocket URL
+// ============================================================
+const WS_URL = import.meta.env.VITE_WS_URL || 'wss://tradeflows.site';
+
 export const useBinanceWebSocket = (symbol = 'btcusdt', timeframe = '1m') => {
   const [price, setPrice] = useState(null);
   const [candles, setCandles] = useState([]);
@@ -98,7 +103,9 @@ export const useBinanceWebSocket = (symbol = 'btcusdt', timeframe = '1m') => {
     }, 2000);
   };
 
-  // Connect to backend WebSocket
+  // ============================================================
+  // CONNECT TO BACKEND WEBSOCKET (FIXED)
+  // ============================================================
   const connect = () => {
     try {
       // Ensure we have initial candles
@@ -109,8 +116,9 @@ export const useBinanceWebSocket = (symbol = 'btcusdt', timeframe = '1m') => {
         setPrice(initialData[initialData.length - 1].close);
       }
 
-      // Connect to backend
-      const wsUrl = `ws://localhost:8081`;
+      // Use environment variable for WebSocket URL
+      // For secure HTTPS use wss://, for HTTP use ws://
+      const wsUrl = WS_URL;
       
       if (wsRef.current) {
         wsRef.current.close();

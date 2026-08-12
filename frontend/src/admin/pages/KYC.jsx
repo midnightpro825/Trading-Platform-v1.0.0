@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const KYC = () => {
-  // ===== STATE =====
-  const [kycRequests, setKycRequests] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLevel, setFilterLevel] = useState('all');
@@ -17,7 +19,6 @@ const KYC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // ===== FETCH KYC REQUESTS =====
   useEffect(() => {
     fetchKYC();
     fetchStats();
@@ -27,14 +28,15 @@ const KYC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/kyc/pending', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/kyc/pending`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setKycRequests(response.data || []);
+      setRequests(response.data || []);
     } catch (error) {
       console.error('Error fetching KYC:', error);
       // Fallback mock data
-      setKycRequests([
+      setRequests([
         {
           id: 1,
           username: 'Alice Johnson',
@@ -119,7 +121,8 @@ const KYC = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -135,7 +138,6 @@ const KYC = () => {
     }
   };
 
-  // ===== KYC ACTIONS =====
   const handleAction = async (action, request) => {
     console.log(`🔘 ${action} clicked for KYC:`, request);
 
@@ -149,7 +151,8 @@ const KYC = () => {
         if (confirm(`✅ Approve KYC for ${request.username}?`)) {
           try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:8081/api/admin/kyc/${request.id}/approve`, {}, {
+            // ✅ FIXED: Use API_URL
+            await axios.put(`${API_URL}/api/admin/kyc/${request.id}/approve`, {}, {
               headers: { Authorization: `Bearer ${token}` }
             });
             alert(`✅ KYC approved for ${request.username}`);
@@ -176,7 +179,6 @@ const KYC = () => {
     }
   };
 
-  // ===== CONFIRM REJECT =====
   const confirmReject = async () => {
     if (!rejectReason.trim()) {
       alert('Please enter a rejection reason');
@@ -185,10 +187,12 @@ const KYC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8081/api/admin/kyc/${rejectId}/reject`,
+      // ✅ FIXED: Use API_URL
+      await axios.put(`${API_URL}/api/admin/kyc/${rejectId}/reject`,
         { reason: rejectReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
       alert(`❌ KYC rejected`);
       setShowRejectModal(false);
       setRejectId(null);
@@ -200,8 +204,8 @@ const KYC = () => {
     }
   };
 
-  // ===== FILTER KYC =====
-  const filteredRequests = kycRequests.filter(request => {
+  // Filter KYC requests
+  const filteredRequests = requests.filter(request => {
     const matchesSearch = (request.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (request.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (request.idNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -210,7 +214,7 @@ const KYC = () => {
     return matchesSearch && matchesLevel && matchesStatus;
   });
 
-  // ===== PAGINATION =====
+  // Pagination
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
   const paginatedRequests = filteredRequests.slice(
     (currentPage - 1) * itemsPerPage,
@@ -226,6 +230,15 @@ const KYC = () => {
     }
   };
 
+  const getStatusIcon = (status) => {
+    switch(status) {
+      case 'pending': return '⏳';
+      case 'approved': return '✅';
+      case 'rejected': return '❌';
+      default: return '🔄';
+    }
+  };
+
   const getLevelLabel = (level) => {
     switch(level) {
       case 1: return 'Basic';
@@ -235,12 +248,12 @@ const KYC = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'pending': return '⏳';
-      case 'approved': return '✅';
-      case 'rejected': return '❌';
-      default: return '🔄';
+  const getRiskColor = (risk) => {
+    switch(risk) {
+      case 'Low': return '#0ecb81';
+      case 'Medium': return '#f0b90b';
+      case 'High': return '#f6465d';
+      default: return '#848e9c';
     }
   };
 
@@ -282,7 +295,7 @@ const KYC = () => {
         </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Filters */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -341,7 +354,11 @@ const KYC = () => {
           <option value="rejected">❌ Rejected</option>
         </select>
         <button
-          onClick={() => { setSearchTerm(''); setFilterLevel('all'); setFilterStatus('all'); }}
+          onClick={() => {
+            setSearchTerm('');
+            setFilterLevel('all');
+            setFilterStatus('all');
+          }}
           style={{
             padding: '8px 16px',
             background: 'rgba(255,255,255,0.04)',
@@ -373,13 +390,13 @@ const KYC = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>ID</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>User</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Level</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>ID Type</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Documents</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Country</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Submitted</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Actions</th>
             </tr>
           </thead>
@@ -394,6 +411,9 @@ const KYC = () => {
             ) : (
               paginatedRequests.map(request => (
                 <tr key={request.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '13px', color: '#848e9c' }}>
+                    #{request.id}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div>
                       <div style={{ color: '#eaecef' }}>{request.username}</div>
@@ -411,11 +431,17 @@ const KYC = () => {
                       {getLevelLabel(request.level)}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>{request.idType}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px' }}>
-                    <span style={{ color: '#eaecef' }}>{request.documents?.length || 0} files</span>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>
+                    {request.idType}
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>{request.country}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px' }}>
+                    <span style={{ color: '#eaecef' }}>
+                      {request.documents?.length || 0} files
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>
+                    {request.country}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       background: getStatusColor(request.status) + '20',
@@ -426,9 +452,6 @@ const KYC = () => {
                     }}>
                       {getStatusIcon(request.status)} {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#848e9c' }}>
-                    {request.submitted ? new Date(request.submitted).toLocaleDateString() : 'N/A'}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
@@ -535,7 +558,7 @@ const KYC = () => {
         </div>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
+      {/* Detail Modal */}
       {showDetailModal && selectedRequest && (
         <div style={{
           position: 'fixed',
@@ -609,24 +632,37 @@ const KYC = () => {
 
             {/* KYC Details */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>ID Type</span><div style={{ color: '#eaecef' }}>{selectedRequest.idType}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>ID Number</span><div style={{ color: '#eaecef' }}>{selectedRequest.idNumber}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Country</span><div style={{ color: '#eaecef' }}>{selectedRequest.country}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Date of Birth</span><div style={{ color: '#eaecef' }}>{selectedRequest.dob}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Risk Score</span>
-                <div style={{
-                  color: selectedRequest.riskScore === 'Low' ? '#0ecb81' :
-                         selectedRequest.riskScore === 'Medium' ? '#f0b90b' : '#f6465d'
-                }}>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>ID Type</span>
+                <div style={{ color: '#eaecef' }}>{selectedRequest.idType}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>ID Number</span>
+                <div style={{ color: '#eaecef' }}>{selectedRequest.idNumber}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Country</span>
+                <div style={{ color: '#eaecef' }}>{selectedRequest.country}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Date of Birth</span>
+                <div style={{ color: '#eaecef' }}>{selectedRequest.dob}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Risk Score</span>
+                <div style={{ color: getRiskColor(selectedRequest.riskScore) }}>
                   {selectedRequest.riskScore || 'Calculating...'}
                 </div>
               </div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Submitted</span><div style={{ color: '#eaecef' }}>{selectedRequest.submitted}</div></div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Submitted</span>
+                <div style={{ color: '#eaecef' }}>{selectedRequest.submitted}</div>
+              </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <span style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Documents</span>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {selectedRequest.documents?.map((doc, i) => (
-                    <span key={i} style={{
+                  {selectedRequest.documents?.map((doc, index) => (
+                    <span key={index} style={{
                       padding: '4px 12px',
                       background: 'rgba(255,255,255,0.04)',
                       borderRadius: '4px',
@@ -679,7 +715,7 @@ const KYC = () => {
         </div>
       )}
 
-      {/* ===== REJECT MODAL ===== */}
+      {/* Reject Modal */}
       {showRejectModal && (
         <div style={{
           position: 'fixed',
@@ -729,7 +765,7 @@ const KYC = () => {
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowRejectModal(false)} style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={confirmReject} style={{ padding: '8px 20px', background: '#f6465d', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}>Confirm Reject</button>
+              <button onClick={confirmReject} style={{ padding: '8px 20px', background: '#f6465d', border: 'none', borderRadius: '6px', color: '#fff', fontWeight: '600', cursor: 'pointer' }}>Reject</button>
             </div>
           </div>
         </div>

@@ -2,6 +2,11 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { getBalance, requestDeposit } from '../utils/api';
 
+// ============================================================
+// 🔧 FIX: Use environment variable for API URL (SAME AS OTHER FILES)
+// ============================================================
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Assets = () => {
   const { balance, setBalance, user } = useContext(AuthContext);
 
@@ -108,11 +113,9 @@ const Assets = () => {
     // Finally try to get from the AuthContext user object if it exists but has no id
     if (user && typeof user === 'object') {
       console.log('🔍 User object from context:', user);
-      // Check if user has an id property
       if (user.id) {
         return user.id;
       }
-      // Check if user has a userId property
       if (user.userId) {
         return user.userId;
       }
@@ -165,7 +168,7 @@ const Assets = () => {
     }
   };
 
-  // ===== FETCH TRANSACTIONS =====
+  // ===== FETCH TRANSACTIONS (FIXED) =====
   const fetchTransactions = async () => {
     try {
       const userId = getUserId();
@@ -175,7 +178,7 @@ const Assets = () => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/admin/deposits?userId=${userId}`, {
+      const response = await fetch(`${API_URL}/api/admin/deposits?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -264,10 +267,10 @@ const Assets = () => {
     setPortfolioChange(change);
   };
 
-  // ===== FETCH BINARY SIGNALS =====
+  // ===== FETCH BINARY SIGNALS (FIXED) =====
   const fetchBinarySignals = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/binary/signals');
+      const response = await fetch(`${API_URL}/api/binary/signals`);
       const data = await response.json();
       if (data && data.length > 0) {
         setBinarySignals(data);
@@ -286,14 +289,14 @@ const Assets = () => {
     }
   };
 
-  // ===== FETCH BINARY HISTORY =====
+  // ===== FETCH BINARY HISTORY (FIXED) =====
   const fetchBinaryHistory = async () => {
     try {
       const userId = getUserId();
       if (!userId) return;
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/binary/history?userId=${userId}`, {
+      const response = await fetch(`${API_URL}/api/binary/history?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -327,7 +330,7 @@ const Assets = () => {
     });
   };
 
-  // ===== PLACE BINARY TRADE =====
+  // ===== PLACE BINARY TRADE (FIXED) =====
   const placeBinaryTrade = async () => {
     const userId = getUserId();
     if (!userId) {
@@ -353,7 +356,7 @@ const Assets = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/binary/trade', {
+      const response = await fetch(`${API_URL}/api/binary/trade`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -398,12 +401,12 @@ const Assets = () => {
     }
   };
 
-  // ===== CHECK BINARY RESULT =====
+  // ===== CHECK BINARY RESULT (FIXED) =====
   const checkBinaryResult = async () => {
     try {
       const userId = getUserId();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/binary/result?userId=${userId}`, {
+      const response = await fetch(`${API_URL}/api/binary/result?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
@@ -469,7 +472,7 @@ const Assets = () => {
     }
   };
 
-  // ===== WITHDRAW SUBMIT =====
+  // ===== WITHDRAW SUBMIT (FIXED) =====
   const handleWithdrawSubmit = async () => {
     const userId = getUserId();
     if (!userId) {
@@ -488,7 +491,7 @@ const Assets = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8081/api/balance/withdraw', {
+      const response = await fetch(`${API_URL}/api/balance/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -518,7 +521,7 @@ const Assets = () => {
     }
   };
 
-  // ===== EARN SUBMIT =====
+  // ===== EARN SUBMIT (FIXED) =====
   const handleEarnSubmit = async () => {
     const userId = getUserId();
     if (!userId) {
@@ -550,7 +553,7 @@ const Assets = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/earn/invest', {
+      const response = await fetch(`${API_URL}/api/earn/invest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -584,12 +587,12 @@ const Assets = () => {
     }
   };
 
-  // ===== FETCH EARN DATA =====
+  // ===== FETCH EARN DATA (FIXED) =====
   const fetchEarnData = async () => {
     try {
       const userId = getUserId();
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/earn/history?userId=${userId}`, {
+      const response = await fetch(`${API_URL}/api/earn/history?userId=${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();

@@ -2,6 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 
+// ============================================================
+// 🔧 FIX: Use environment variable for API URL (SAME AS Assets.jsx)
+// ============================================================
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Account = () => {
   const { user, balance, setUser, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('profile');
@@ -143,7 +148,7 @@ const Account = () => {
   };
 
   // ============================================================
-  // KYC - UPLOAD DOCUMENT
+  // KYC - UPLOAD DOCUMENT (✅ FIXED)
   // ============================================================
   const uploadDocument = async (docType) => {
     const file = uploadedFiles[docType];
@@ -163,7 +168,7 @@ const Account = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8081/api/kyc/upload', formData, {
+      const response = await axios.post(`${API_URL}/api/kyc/upload`, formData, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -191,7 +196,7 @@ const Account = () => {
   };
 
   // ============================================================
-  // KYC - UPGRADE LEVEL
+  // KYC - UPGRADE LEVEL (✅ FIXED)
   // ============================================================
   const handleKYCUpgrade = async (level) => {
     if (level > kycLevel + 1) {
@@ -220,7 +225,7 @@ const Account = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:8081/api/kyc/upgrade', 
+      const response = await axios.post(`${API_URL}/api/kyc/upgrade`, 
         { level },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -245,12 +250,12 @@ const Account = () => {
   };
 
   // ============================================================
-  // FETCH KYC STATUS
+  // FETCH KYC STATUS (✅ FIXED)
   // ============================================================
   const fetchKYCStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/user/kyc/status', {
+      const response = await axios.get(`${API_URL}/api/user/kyc/status`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.data) {
@@ -263,12 +268,12 @@ const Account = () => {
   };
 
   // ============================================================
-  // FETCH PROFILE
+  // FETCH PROFILE (✅ FIXED)
   // ============================================================
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/user/profile', {
+      const response = await axios.get(`${API_URL}/api/user/profile`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -287,12 +292,12 @@ const Account = () => {
   };
 
   // ============================================================
-  // FETCH REFERRAL DATA
+  // FETCH REFERRAL DATA (✅ FIXED)
   // ============================================================
   const fetchReferralData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/referral', {
+      const response = await axios.get(`${API_URL}/api/referral`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -310,12 +315,12 @@ const Account = () => {
   };
 
   // ============================================================
-  // FETCH ACTIVITY LOG
+  // FETCH ACTIVITY LOG (✅ FIXED)
   // ============================================================
   const fetchActivityLog = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/activity', {
+      const response = await axios.get(`${API_URL}/api/activity`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data && response.data.length > 0) {
@@ -337,13 +342,13 @@ const Account = () => {
   }, []);
 
   // ============================================================
-  // UPDATE PROFILE
+  // UPDATE PROFILE (✅ FIXED)
   // ============================================================
   const updateProfile = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:8081/api/user/profile', 
+      await axios.put(`${API_URL}/api/user/profile`, 
         profileData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -361,7 +366,7 @@ const Account = () => {
   };
 
   // ============================================================
-  // CHANGE PASSWORD
+  // CHANGE PASSWORD (✅ FIXED)
   // ============================================================
   const changePassword = async () => {
     if (securityData.newPassword !== securityData.confirmPassword) {
@@ -378,7 +383,7 @@ const Account = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:8081/api/user/password',
+      await axios.put(`${API_URL}/api/user/password`,
         { 
           current_password: securityData.currentPassword,
           new_password: securityData.newPassword
@@ -401,13 +406,13 @@ const Account = () => {
   };
 
   // ============================================================
-  // TOGGLE 2FA
+  // TOGGLE 2FA (✅ FIXED)
   // ============================================================
   const toggle2FA = async () => {
     try {
       const token = localStorage.getItem('token');
       const endpoint = securityData.twoFAEnabled ? 'disable' : 'enable';
-      await axios.post(`http://localhost:8081/api/user/2fa/${endpoint}`, {},
+      await axios.post(`${API_URL}/api/user/2fa/${endpoint}`, {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSecurityData({ ...securityData, twoFAEnabled: !securityData.twoFAEnabled });

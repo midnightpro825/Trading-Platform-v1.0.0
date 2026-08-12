@@ -26,27 +26,26 @@ const Login = () => {
       
       const result = await login(email, password);
       console.log('✅ Login successful:', result);
+      console.log('👑 User role:', result?.user?.role);
       
       setSuccess(true);
       
-      // Redirect to dashboard after 1.5 seconds
-      // Check if user is admin
-if (result?.user?.role === 'admin') {
-    console.log('👑 Admin user - redirecting to admin panel');
-    setTimeout(() => {
-        window.location.href = '/admin';
-    }, 1500);
-} else {
-    console.log('👤 Regular user - redirecting to dashboard');
-    setTimeout(() => {
-        window.location.href = '/dashboard';
-    }, 1500);
-}
+      // ✅ Check user role before redirecting
+      if (result?.user?.role === 'admin') {
+        console.log('👑 Admin user - redirecting to admin panel');
+        setTimeout(() => {
+          window.location.href = '/admin';
+        }, 1500);
+      } else {
+        console.log('👤 Regular user - redirecting to dashboard');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+      }
       
     } catch (err) {
       console.error('❌ Login error:', err);
       
-      // Handle specific error messages
       if (err.message === 'Invalid email or password') {
         setError('Invalid email or password. Please try again.');
       } else if (err.message === 'Account is deactivated') {
@@ -109,7 +108,9 @@ if (result?.user?.role === 'admin') {
         }}>
           <div style={{ fontSize: '28px' }}>🎉</div>
           <div style={{ fontWeight: '600', fontSize: '16px' }}>Login Successful!</div>
-          <div style={{ fontSize: '13px', marginTop: '4px', opacity: 0.7 }}>Redirecting to dashboard...</div>
+          <div style={{ fontSize: '13px', marginTop: '4px', opacity: 0.7 }}>
+            {result?.user?.role === 'admin' ? 'Redirecting to admin panel...' : 'Redirecting to dashboard...'}
+          </div>
         </div>
       )}
 

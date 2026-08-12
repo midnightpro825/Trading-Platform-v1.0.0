@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Users = () => {
-  // ===== STATE =====
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,16 +12,15 @@ const Users = () => {
   const [filterKYC, setFilterKYC] = useState('all');
   const [filterVIP, setFilterVIP] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
-  const [showUserModal, setShowUserModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBalanceModal, setShowBalanceModal] = useState(false);
-  const [stats, setStats] = useState({ total: 0, active: 0, suspended: 0, pending: 0 });
   const [editData, setEditData] = useState({ username: '', email: '', role: 'user', vipTier: 'Bronze' });
   const [balanceData, setBalanceData] = useState({ asset: 'USDT', amount: 0, type: 'credit' });
+  const [stats, setStats] = useState({ total: 0, active: 0, suspended: 0, pending: 0 });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // ===== FETCH USERS =====
   useEffect(() => {
     fetchUsers();
     fetchStats();
@@ -29,7 +30,8 @@ const Users = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/users', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(response.data || []);
@@ -37,10 +39,66 @@ const Users = () => {
       console.error('Error fetching users:', error);
       // Fallback mock data
       setUsers([
-        { id: 1, username: 'Alice Johnson', email: 'alice@email.com', role: 'user', kyc_status: 'verified', is_active: true, vip_tier: 'Silver', balance: 154500, trades: 142, joined: '2024-01-15', last_login: '2 mins ago', phone: '+1 (555) 123-4567', country: 'US' },
-        { id: 2, username: 'Bob Smith', email: 'bob@email.com', role: 'user', kyc_status: 'pending', is_active: true, vip_tier: 'Bronze', balance: 2300, trades: 12, joined: '2024-06-01', last_login: '3 days ago', phone: '+1 (555) 987-6543', country: 'UK' },
-        { id: 3, username: 'Charlie Lee', email: 'charlie@email.com', role: 'user', kyc_status: 'verified', is_active: false, vip_tier: 'Gold', balance: 452000, trades: 523, joined: '2023-11-20', last_login: '1 hour ago', phone: '+1 (555) 456-7890', country: 'CA' },
-        { id: 4, username: 'Diana Park', email: 'diana@email.com', role: 'admin', kyc_status: 'verified', is_active: true, vip_tier: 'Platinum', balance: 1250000, trades: 2456, joined: '2023-08-05', last_login: '5 mins ago', phone: '+1 (555) 789-0123', country: 'US' },
+        {
+          id: 1,
+          username: 'Alice Johnson',
+          email: 'alice@email.com',
+          role: 'user',
+          kyc_status: 'verified',
+          is_active: true,
+          vip_tier: 'Silver',
+          balance: 154500,
+          trades: 142,
+          joined: '2024-01-15',
+          last_login: '2 mins ago',
+          phone: '+1 (555) 123-4567',
+          country: 'US'
+        },
+        {
+          id: 2,
+          username: 'Bob Smith',
+          email: 'bob@email.com',
+          role: 'user',
+          kyc_status: 'pending',
+          is_active: true,
+          vip_tier: 'Bronze',
+          balance: 2300,
+          trades: 12,
+          joined: '2024-06-01',
+          last_login: '3 days ago',
+          phone: '+1 (555) 987-6543',
+          country: 'UK'
+        },
+        {
+          id: 3,
+          username: 'Charlie Lee',
+          email: 'charlie@email.com',
+          role: 'user',
+          kyc_status: 'verified',
+          is_active: false,
+          vip_tier: 'Gold',
+          balance: 452000,
+          trades: 523,
+          joined: '2023-11-20',
+          last_login: '1 hour ago',
+          phone: '+1 (555) 456-7890',
+          country: 'CA'
+        },
+        {
+          id: 4,
+          username: 'Diana Park',
+          email: 'diana@email.com',
+          role: 'admin',
+          kyc_status: 'verified',
+          is_active: true,
+          vip_tier: 'Platinum',
+          balance: 1250000,
+          trades: 2456,
+          joined: '2023-08-05',
+          last_login: '5 mins ago',
+          phone: '+1 (555) 789-0123',
+          country: 'US'
+        },
       ]);
     } finally {
       setLoading(false);
@@ -50,7 +108,8 @@ const Users = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -66,16 +125,15 @@ const Users = () => {
     }
   };
 
-  // ===== USER ACTIONS =====
   const handleAction = async (action, user) => {
     console.log(`🔘 ${action} clicked for user:`, user);
-    
+
     switch(action) {
       case 'view':
         setSelectedUser(user);
-        setShowUserModal(true);
+        setShowDetailModal(true);
         break;
-        
+
       case 'edit':
         setSelectedUser(user);
         setEditData({
@@ -86,78 +144,84 @@ const Users = () => {
         });
         setShowEditModal(true);
         break;
-        
+
       case 'balance':
         setSelectedUser(user);
         setBalanceData({ asset: 'USDT', amount: 0, type: 'credit' });
         setShowBalanceModal(true);
         break;
-        
+
       case 'suspend':
-        if (confirm(`⚠️ Suspend user ${user.username}? They won't be able to login or trade.`)) {
+        if (confirm(`⚠ Suspend user ${user.username}? They won't be able to login or trade.`)) {
           try {
             const token = localStorage.getItem('token');
-            await axios.put(`http://localhost:8081/api/admin/users/${user.id}/status`,
+            // ✅ FIXED: Use API_URL
+            await axios.put(`${API_URL}/api/admin/users/${user.id}/status`,
               { is_active: false },
               { headers: { Authorization: `Bearer ${token}` } }
             );
             alert(`✅ ${user.username} suspended`);
             fetchUsers();
+            fetchStats();
           } catch (error) {
             alert('❌ Error: ' + error.message);
           }
         }
         break;
-        
+
       case 'activate':
         try {
           const token = localStorage.getItem('token');
-          await axios.put(`http://localhost:8081/api/admin/users/${user.id}/status`,
+          // ✅ FIXED: Use API_URL
+          await axios.put(`${API_URL}/api/admin/users/${user.id}/status`,
             { is_active: true },
             { headers: { Authorization: `Bearer ${token}` } }
           );
           alert(`✅ ${user.username} activated`);
           fetchUsers();
+          fetchStats();
         } catch (error) {
           alert('❌ Error: ' + error.message);
         }
         break;
-        
+
       case 'delete':
-        if (confirm(`⚠️ PERMANENTLY DELETE ${user.username}? This cannot be undone!`)) {
+        if (confirm(`⚠ PERMANENTLY DELETE ${user.username}? This cannot be undone!`)) {
           try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:8081/api/admin/users/${user.id}`, {
+            // ✅ FIXED: Use API_URL
+            await axios.delete(`${API_URL}/api/admin/users/${user.id}`, {
               headers: { Authorization: `Bearer ${token}` }
             });
-            alert(`🗑️ ${user.username} deleted`);
+            alert(`🗑 ${user.username} deleted`);
             fetchUsers();
+            fetchStats();
           } catch (error) {
             alert('❌ Error: ' + error.message);
           }
         }
         break;
-        
+
       case 'reset-password':
         if (confirm(`Reset password for ${user.username}?`)) {
           alert(`📧 Password reset email sent to ${user.email}`);
         }
         break;
-        
+
       default:
         alert(`✅ ${action} clicked!`);
     }
   };
 
-  // ===== SAVE EDIT =====
-  const saveEdit = async () => {
+  const updateUser = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:8081/api/admin/users/${selectedUser.id}`,
+      // ✅ FIXED: Use API_URL
+      await axios.put(`${API_URL}/api/admin/users/${selectedUser.id}`,
         editData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      alert('✅ User updated!');
+      alert(`✅ User updated!`);
       setShowEditModal(false);
       fetchUsers();
     } catch (error) {
@@ -165,11 +229,11 @@ const Users = () => {
     }
   };
 
-  // ===== ADJUST BALANCE =====
-  const adjustBalance = async () => {
+  const updateBalance = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`http://localhost:8081/api/admin/users/${selectedUser.id}/balance`,
+      // ✅ FIXED: Use API_URL
+      await axios.post(`${API_URL}/api/admin/users/${selectedUser.id}/balance`,
         balanceData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -181,41 +245,37 @@ const Users = () => {
     }
   };
 
-  // ===== FILTER USERS =====
+  // Filter users
   const filteredUsers = users.filter(user => {
     const matchesSearch = (user.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (user.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const userStatus = user.is_active ? 'active' : 'suspended';
-    const matchesStatus = filterStatus === 'all' || userStatus === filterStatus;
+    const status = user.is_active ? 'active' : 'suspended';
+    const matchesStatus = filterStatus === 'all' || status === filterStatus;
     const kycStatus = user.kyc_status || 'none';
     const matchesKYC = filterKYC === 'all' || 
-      (filterKYC === '0' && kycStatus === 'none') ||
-      (filterKYC === '1' && kycStatus === 'basic') ||
-      (filterKYC === '2' && kycStatus === 'verified') ||
-      (filterKYC === '3' && kycStatus === 'advanced');
+                        (filterKYC === '0' && kycStatus === 'none') ||
+                        (filterKYC === '1' && kycStatus === 'basic') ||
+                        (filterKYC === '2' && kycStatus === 'verified') ||
+                        (filterKYC === '3' && kycStatus === 'advanced');
     const vipTier = (user.vip_tier || 'Bronze').toLowerCase();
     const matchesVIP = filterVIP === 'all' || vipTier === filterVIP.toLowerCase();
     return matchesSearch && matchesStatus && matchesKYC && matchesVIP;
   });
 
-  // ===== PAGINATION =====
+  // Pagination
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'active': return '#0ecb81';
-      case 'suspended': return '#f6465d';
-      case 'pending': return '#f0b90b';
-      default: return '#848e9c';
-    }
-  };
-
-  const getVipIcon = (tier) => {
-    const icons = { 'Bronze': '🥉', 'Silver': '🥈', 'Gold': '🥇', 'Platinum': '💎' };
+  const getVIPIcon = (tier) => {
+    const icons = {
+      'Bronze': '🥉',
+      'Silver': '🥈',
+      'Gold': '🥇',
+      'Platinum': '💎'
+    };
     return icons[tier] || '🥉';
   };
 
@@ -253,7 +313,7 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Filters */}
       <div style={{
         display: 'flex',
         gap: '12px',
@@ -292,7 +352,6 @@ const Users = () => {
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
-          <option value="pending">Pending</option>
         </select>
         <select
           value={filterKYC}
@@ -331,7 +390,12 @@ const Users = () => {
           <option value="platinum">💎 Platinum</option>
         </select>
         <button
-          onClick={() => { setSearchTerm(''); setFilterStatus('all'); setFilterKYC('all'); setFilterVIP('all'); }}
+          onClick={() => {
+            setSearchTerm('');
+            setFilterStatus('all');
+            setFilterKYC('all');
+            setFilterVIP('all');
+          }}
           style={{
             padding: '8px 16px',
             background: 'rgba(255,255,255,0.04)',
@@ -372,7 +436,7 @@ const Users = () => {
         </button>
       </div>
 
-      {/* User Table */}
+      {/* Users Table */}
       <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -420,7 +484,9 @@ const Users = () => {
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>{user.email}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: '#eaecef' }}>
+                    {user.email}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       background: user.role === 'admin' ? 'rgba(240,185,11,0.2)' : 'rgba(255,255,255,0.04)',
@@ -445,7 +511,7 @@ const Users = () => {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ fontSize: '14px' }}>
-                      {getVipIcon(user.vip_tier)} {user.vip_tier || 'Bronze'}
+                      {getVIPIcon(user.vip_tier)} {user.vip_tier || 'Bronze'}
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px', color: '#0ecb81', fontWeight: '600' }}>
@@ -464,16 +530,58 @@ const Users = () => {
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      <button onClick={() => handleAction('view', user)} style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }} title="View">👁️</button>
-                      <button onClick={() => handleAction('edit', user)} style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }} title="Edit">✏️</button>
-                      <button onClick={() => handleAction('balance', user)} style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }} title="Balance">💰</button>
+                      <button
+                        onClick={() => handleAction('view', user)}
+                        style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }}
+                        title="View"
+                      >
+                        👁️
+                      </button>
+                      <button
+                        onClick={() => handleAction('edit', user)}
+                        style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }}
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleAction('balance', user)}
+                        style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }}
+                        title="Balance"
+                      >
+                        💰
+                      </button>
                       {user.is_active ? (
-                        <button onClick={() => handleAction('suspend', user)} style={{ padding: '4px 8px', background: '#f0b90b', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }} title="Suspend">⛔</button>
+                        <button
+                          onClick={() => handleAction('suspend', user)}
+                          style={{ padding: '4px 8px', background: '#f0b90b', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }}
+                          title="Suspend"
+                        >
+                          ⛔
+                        </button>
                       ) : (
-                        <button onClick={() => handleAction('activate', user)} style={{ padding: '4px 8px', background: '#0ecb81', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }} title="Activate">✅</button>
+                        <button
+                          onClick={() => handleAction('activate', user)}
+                          style={{ padding: '4px 8px', background: '#0ecb81', border: 'none', borderRadius: '4px', color: '#0a0b0e', cursor: 'pointer' }}
+                          title="Activate"
+                        >
+                          ✅
+                        </button>
                       )}
-                      <button onClick={() => handleAction('reset-password', user)} style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }} title="Reset Password">🔑</button>
-                      <button onClick={() => handleAction('delete', user)} style={{ padding: '4px 8px', background: '#f6465d', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }} title="Delete">🗑️</button>
+                      <button
+                        onClick={() => handleAction('reset-password', user)}
+                        style={{ padding: '4px 8px', background: '#2a2e39', border: 'none', borderRadius: '4px', color: '#848e9c', cursor: 'pointer' }}
+                        title="Reset Password"
+                      >
+                        🔑
+                      </button>
+                      <button
+                        onClick={() => handleAction('delete', user)}
+                        style={{ padding: '4px 8px', background: '#f6465d', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -545,8 +653,8 @@ const Users = () => {
         </div>
       )}
 
-      {/* ===== USER VIEW MODAL ===== */}
-      {showUserModal && selectedUser && (
+      {/* Detail Modal */}
+      {showDetailModal && selectedUser && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -572,7 +680,7 @@ const Users = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0 }}>👤 User Details</h3>
-              <button onClick={() => setShowUserModal(false)} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowDetailModal(false)} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
@@ -617,25 +725,59 @@ const Users = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Phone</span><div style={{ color: '#eaecef' }}>{selectedUser.phone || 'N/A'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Country</span><div style={{ color: '#eaecef' }}>{selectedUser.country || 'N/A'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>VIP Tier</span><div style={{ color: '#eaecef' }}>{getVipIcon(selectedUser.vip_tier)} {selectedUser.vip_tier || 'Bronze'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>KYC Level</span><div style={{ color: '#eaecef' }}>{selectedUser.kyc_status || 'Pending'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Balance</span><div style={{ color: '#0ecb81', fontWeight: '600' }}>${(selectedUser.balance || 0).toLocaleString()}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Total Trades</span><div style={{ color: '#eaecef' }}>{selectedUser.trades || 0}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Joined</span><div style={{ color: '#eaecef' }}>{selectedUser.joined || 'N/A'}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Last Login</span><div style={{ color: '#eaecef' }}>{selectedUser.last_login || 'N/A'}</div></div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Phone</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.phone || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Country</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.country || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>VIP Tier</span>
+                <div style={{ color: '#eaecef' }}>{getVIPIcon(selectedUser.vip_tier)} {selectedUser.vip_tier || 'Bronze'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>KYC Level</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.kyc_status || 'Pending'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Balance</span>
+                <div style={{ color: '#0ecb81', fontWeight: '600' }}>${(selectedUser.balance || 0).toLocaleString()}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Total Trades</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.trades || 0}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Joined</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.joined || 'N/A'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Last Login</span>
+                <div style={{ color: '#eaecef' }}>{selectedUser.last_login || 'N/A'}</div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowUserModal(false)} style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}>Close</button>
-              <button onClick={() => { setShowUserModal(false); handleAction('edit', selectedUser); }} style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}>✏️ Edit</button>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+              <button
+                onClick={() => { setShowDetailModal(false); handleAction('edit', selectedUser); }}
+                style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}
+              >
+                ✏️ Edit
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== EDIT USER MODAL ===== */}
+      {/* Edit Modal */}
       {showEditModal && selectedUser && (
         <div style={{
           position: 'fixed',
@@ -669,7 +811,7 @@ const Users = () => {
                 <input
                   type="text"
                   value={editData.username}
-                  onChange={(e) => setEditData({...editData, username: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, username: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -686,7 +828,7 @@ const Users = () => {
                 <input
                   type="email"
                   value={editData.email}
-                  onChange={(e) => setEditData({...editData, email: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -702,7 +844,7 @@ const Users = () => {
                 <label style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Role</label>
                 <select
                   value={editData.role}
-                  onChange={(e) => setEditData({...editData, role: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, role: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -721,7 +863,7 @@ const Users = () => {
                 <label style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>VIP Tier</label>
                 <select
                   value={editData.vipTier}
-                  onChange={(e) => setEditData({...editData, vipTier: e.target.value})}
+                  onChange={(e) => setEditData({ ...editData, vipTier: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -741,14 +883,24 @@ const Users = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowEditModal(false)} style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={saveEdit} style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}>💾 Save</button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateUser}
+                style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}
+              >
+                💾 Save
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ===== BALANCE ADJUST MODAL ===== */}
+      {/* Balance Modal */}
       {showBalanceModal && selectedUser && (
         <div style={{
           position: 'fixed',
@@ -785,7 +937,7 @@ const Users = () => {
                 <label style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Asset</label>
                 <select
                   value={balanceData.asset}
-                  onChange={(e) => setBalanceData({...balanceData, asset: e.target.value})}
+                  onChange={(e) => setBalanceData({ ...balanceData, asset: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -807,7 +959,7 @@ const Users = () => {
                 <input
                   type="number"
                   value={balanceData.amount}
-                  onChange={(e) => setBalanceData({...balanceData, amount: parseFloat(e.target.value)})}
+                  onChange={(e) => setBalanceData({ ...balanceData, amount: parseFloat(e.target.value) })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -823,7 +975,7 @@ const Users = () => {
                 <label style={{ color: '#848e9c', fontSize: '13px', display: 'block', marginBottom: '4px' }}>Type</label>
                 <select
                   value={balanceData.type}
-                  onChange={(e) => setBalanceData({...balanceData, type: e.target.value})}
+                  onChange={(e) => setBalanceData({ ...balanceData, type: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '10px 14px',
@@ -841,8 +993,18 @@ const Users = () => {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', marginTop: '20px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowBalanceModal(false)} style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={adjustBalance} style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}>💾 Apply</button>
+              <button
+                onClick={() => setShowBalanceModal(false)}
+                style={{ padding: '8px 20px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', color: '#848e9c', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateBalance}
+                style={{ padding: '8px 20px', background: '#f0b90b', border: 'none', borderRadius: '6px', color: '#0a0b0e', fontWeight: '600', cursor: 'pointer' }}
+              >
+                💾 Apply
+              </button>
             </div>
           </div>
         </div>

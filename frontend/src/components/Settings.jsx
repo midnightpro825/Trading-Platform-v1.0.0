@@ -2,6 +2,11 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 
+// ============================================================
+// 🔧 FIX: Use environment variable for API URL (SAME AS OTHER FILES)
+// ============================================================
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Settings = () => {
   const { user } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('general');
@@ -55,10 +60,13 @@ const Settings = () => {
     loadSettings();
   }, []);
 
+  // ============================================================
+  // LOAD SETTINGS (FIXED)
+  // ============================================================
   const loadSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/settings', {
+      const response = await axios.get(`${API_URL}/api/settings`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data && Object.keys(response.data).length > 0) {
@@ -79,6 +87,9 @@ const Settings = () => {
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
   };
 
+  // ============================================================
+  // SAVE SETTINGS (FIXED)
+  // ============================================================
   const saveSettings = async () => {
     setLoading(true);
     setSaveSuccess(false);
@@ -86,7 +97,7 @@ const Settings = () => {
     
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://localhost:8081/api/settings', settings, {
+      await axios.put(`${API_URL}/api/settings`, settings, {
         headers: { Authorization: `Bearer ${token}` }
       });
       localStorage.setItem('tradeflow-settings', JSON.stringify(settings));

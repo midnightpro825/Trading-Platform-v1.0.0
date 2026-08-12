@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+// ✅ ADD THIS LINE
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 const Transactions = () => {
-  // ===== STATE =====
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,7 +24,6 @@ const Transactions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  // ===== FETCH TRANSACTIONS =====
   useEffect(() => {
     fetchTransactions();
     fetchStats();
@@ -32,7 +33,8 @@ const Transactions = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/transactions', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/transactions`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setTransactions(response.data || []);
@@ -147,7 +149,8 @@ const Transactions = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8081/api/admin/stats', {
+      // ✅ FIXED: Use API_URL
+      const response = await axios.get(`${API_URL}/api/admin/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (response.data) {
@@ -165,24 +168,25 @@ const Transactions = () => {
     }
   };
 
-  // ===== TRANSACTION ACTIONS =====
   const handleAction = (action, transaction) => {
     console.log(`🔘 ${action} clicked for transaction:`, transaction);
-    
+
     switch(action) {
       case 'view':
         setSelectedTransaction(transaction);
         setShowDetailModal(true);
         break;
+
       case 'receipt':
         alert(`📄 Generating receipt for transaction #${transaction.id}`);
         break;
+
       default:
         alert(`✅ ${action} clicked!`);
     }
   };
 
-  // ===== FILTER TRANSACTIONS =====
+  // Filter transactions
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = (transaction.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (transaction.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -193,7 +197,10 @@ const Transactions = () => {
     return matchesSearch && matchesType && matchesStatus && matchesAsset;
   });
 
-  // ===== PAGINATION =====
+  // Get unique assets for filter
+  const assets = [...new Set(transactions.map(t => t.asset))];
+
+  // Pagination
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const paginatedTransactions = filteredTransactions.slice(
     (currentPage - 1) * itemsPerPage,
@@ -201,23 +208,23 @@ const Transactions = () => {
   );
 
   const getTypeIcon = (type) => {
-    switch(type) {
-      case 'deposit': return '📥';
-      case 'withdrawal': return '📤';
-      case 'trade': return '📊';
-      case 'transfer': return '🔄';
-      default: return '💳';
-    }
+    const icons = {
+      deposit: '📥',
+      withdrawal: '📤',
+      trade: '📊',
+      transfer: '🔄'
+    };
+    return icons[type] || '💳';
   };
 
   const getTypeColor = (type) => {
-    switch(type) {
-      case 'deposit': return '#0ecb81';
-      case 'withdrawal': return '#f6465d';
-      case 'trade': return '#f0b90b';
-      case 'transfer': return '#627eea';
-      default: return '#848e9c';
-    }
+    const colors = {
+      deposit: '#0ecb81',
+      withdrawal: '#f6465d',
+      trade: '#f0b90b',
+      transfer: '#627eea'
+    };
+    return colors[type] || '#848e9c';
   };
 
   const getStatusColor = (status) => {
@@ -358,13 +365,17 @@ const Transactions = () => {
           }}
         >
           <option value="all">All Assets</option>
-          <option value="USDT">USDT</option>
-          <option value="BTC">BTC</option>
-          <option value="ETH">ETH</option>
-          <option value="SOL">SOL</option>
+          {assets.map(asset => (
+            <option key={asset} value={asset}>{asset}</option>
+          ))}
         </select>
         <button
-          onClick={() => { setSearchTerm(''); setFilterType('all'); setFilterStatus('all'); setFilterAsset('all'); }}
+          onClick={() => {
+            setSearchTerm('');
+            setFilterType('all');
+            setFilterStatus('all');
+            setFilterAsset('all');
+          }}
           style={{
             padding: '8px 16px',
             background: 'rgba(255,255,255,0.04)',
@@ -403,14 +414,13 @@ const Transactions = () => {
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Amount</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Fee</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Status</th>
-              <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Time</th>
               <th style={{ textAlign: 'left', padding: '12px 16px', color: '#848e9c', fontSize: '12px', fontWeight: '600' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedTransactions.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#848e9c' }}>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#848e9c' }}>
                   <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
                   <p>No transactions found</p>
                 </td>
@@ -435,11 +445,19 @@ const Transactions = () => {
                       {getTypeIcon(transaction.type)} {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#f0b90b' }}>{transaction.asset}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: '600', color: transaction.type === 'withdrawal' ? '#f6465d' : '#0ecb81' }}>
+                  <td style={{ padding: '12px 16px', fontWeight: '600', color: '#f0b90b' }}>
+                    {transaction.asset}
+                  </td>
+                  <td style={{
+                    padding: '12px 16px',
+                    fontWeight: '600',
+                    color: transaction.type === 'withdrawal' ? '#f6465d' : '#0ecb81'
+                  }}>
                     {transaction.type === 'withdrawal' ? '-' : '+'}{transaction.amount}
                   </td>
-                  <td style={{ padding: '12px 16px', color: '#848e9c' }}>{transaction.fee || 0}</td>
+                  <td style={{ padding: '12px 16px', color: '#848e9c' }}>
+                    {transaction.fee || 0}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{
                       background: getStatusColor(transaction.status) + '20',
@@ -450,9 +468,6 @@ const Transactions = () => {
                     }}>
                       {getStatusIcon(transaction.status)} {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                     </span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: '#848e9c' }}>
-                    {transaction.timestamp}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -543,7 +558,7 @@ const Transactions = () => {
         </div>
       )}
 
-      {/* ===== DETAIL MODAL ===== */}
+      {/* Detail Modal */}
       {showDetailModal && selectedTransaction && (
         <div style={{
           position: 'fixed',
@@ -573,7 +588,6 @@ const Transactions = () => {
               <button onClick={() => setShowDetailModal(false)} style={{ background: 'none', border: 'none', color: '#848e9c', fontSize: '24px', cursor: 'pointer' }}>✕</button>
             </div>
 
-            {/* User Info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
               <div style={{
                 width: '48px',
@@ -615,10 +629,13 @@ const Transactions = () => {
               </div>
             </div>
 
-            {/* Transaction Details */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Asset</span><div style={{ color: '#eaecef' }}>{selectedTransaction.asset}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Amount</span>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Asset</span>
+                <div style={{ color: '#eaecef' }}>{selectedTransaction.asset}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Amount</span>
                 <div style={{
                   color: selectedTransaction.type === 'withdrawal' ? '#f6465d' : '#0ecb81',
                   fontWeight: '600'
@@ -626,8 +643,12 @@ const Transactions = () => {
                   {selectedTransaction.type === 'withdrawal' ? '-' : '+'}{selectedTransaction.amount}
                 </div>
               </div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Fee</span><div style={{ color: '#eaecef' }}>{selectedTransaction.fee || 0}</div></div>
-              <div><span style={{ color: '#848e9c', fontSize: '13px' }}>Status</span>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Fee</span>
+                <div style={{ color: '#eaecef' }}>{selectedTransaction.fee || 0}</div>
+              </div>
+              <div>
+                <span style={{ color: '#848e9c', fontSize: '13px' }}>Status</span>
                 <div style={{ color: getStatusColor(selectedTransaction.status) }}>
                   {getStatusIcon(selectedTransaction.status)} {selectedTransaction.status.charAt(0).toUpperCase() + selectedTransaction.status.slice(1)}
                 </div>
