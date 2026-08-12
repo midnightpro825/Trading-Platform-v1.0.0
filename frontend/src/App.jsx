@@ -13,6 +13,7 @@ import Account from './components/Account';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import LandingPage from './pages/LandingPage';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
@@ -50,6 +51,33 @@ const AppContent = () => {
     return <Register />;
   }
   
+    // ============================================================
+  // ✅ ADMIN PAGE
+  // ============================================================
+  if (path === '/admin' || path === '/admin/') {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed.role === 'admin') {
+          return (
+            <div className="app">
+              <Header activePage="admin" setActivePage={setActivePage} />
+              <div className="app-body">
+                <main className="main-content">
+                  <AdminDashboard />
+                </main>
+              </div>
+              <BottomNav activePage="admin" setActivePage={setActivePage} />
+            </div>
+          );
+        }
+      } catch (e) {}
+    }
+    window.location.href = '/dashboard';
+    return null;
+  }
+
   // Show landing page for root path
   if (path === '/' || path === '/index.html' || path === '') {
     return <LandingPage />;

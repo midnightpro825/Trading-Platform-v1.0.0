@@ -1,6 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { getBalance } from '../utils/api';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://tradeflows.site';
+
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -137,7 +139,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('📝 Registering new user:', userData);
       
-      const response = await fetch('http://localhost:8081/api/auth/register', {
+      const response = await fetch('${API_URL}/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userData)
@@ -185,7 +187,7 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('🔐 Logging in:', email);
       
-      const response = await fetch('http://localhost:8081/api/auth/login', {
+      const response = await fetch('${API_URL}/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

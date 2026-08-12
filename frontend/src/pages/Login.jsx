@@ -30,9 +30,18 @@ const Login = () => {
       setSuccess(true);
       
       // Redirect to dashboard after 1.5 seconds
-      setTimeout(() => {
+      // Check if user is admin
+if (result?.user?.role === 'admin') {
+    console.log('👑 Admin user - redirecting to admin panel');
+    setTimeout(() => {
+        window.location.href = '/admin';
+    }, 1500);
+} else {
+    console.log('👤 Regular user - redirecting to dashboard');
+    setTimeout(() => {
         window.location.href = '/dashboard';
-      }, 1500);
+    }, 1500);
+}
       
     } catch (err) {
       console.error('❌ Login error:', err);
