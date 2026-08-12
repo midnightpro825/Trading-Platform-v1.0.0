@@ -13,7 +13,8 @@ import Account from './components/Account';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import LandingPage from './pages/LandingPage';
-import AdminDashboard from './pages/Admin/AdminDashboard';
+// ✅ FIX: Correct import path for admin
+import AdminDashboard from './admin/AdminApp';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 
@@ -51,7 +52,7 @@ const AppContent = () => {
     return <Register />;
   }
   
-    // ============================================================
+  // ============================================================
   // ✅ ADMIN PAGE
   // ============================================================
   if (path === '/admin' || path === '/admin/') {
