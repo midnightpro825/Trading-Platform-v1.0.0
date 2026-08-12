@@ -1,4 +1,3 @@
-this the server.js i should have the one i needed forections for 
 require('dotenv').config();
 const express = require('express');
 const http = require('http');
@@ -84,7 +83,6 @@ app.post('/api/auth/register', async (req, res) => {
         
         console.log('📝 Registration attempt:', { name, email, username });
         
-        // Validate input
         if (!email || !password) {
             return res.status(400).json({ 
                 success: false, 
@@ -92,7 +90,6 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Check if user exists
         const existingUser = await pool.query(
             'SELECT id FROM users WHERE email = $1',
             [email]
@@ -105,11 +102,9 @@ app.post('/api/auth/register', async (req, res) => {
             });
         }
         
-        // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // Create user
         const result = await pool.query(
             `INSERT INTO users (username, email, password, first_name, role, is_active, created_at)
              VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
@@ -119,7 +114,6 @@ app.post('/api/auth/register', async (req, res) => {
         
         const user = result.rows[0];
         
-        // Create default balances for new user
         const defaultAssets = ['USDT', 'BTC', 'ETH', 'SOL'];
         for (const asset of defaultAssets) {
             await pool.query(
@@ -129,14 +123,12 @@ app.post('/api/auth/register', async (req, res) => {
             );
         }
         
-        // Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES }
         );
         
-        // Return proper user data
         const userResponse = {
             id: user.id,
             name: user.username || user.first_name || 'User',
@@ -172,7 +164,6 @@ app.post('/api/auth/login', async (req, res) => {
         
         console.log('🔐 Login attempt:', { email });
         
-        // Validate input
         if (!email || !password) {
             return res.status(400).json({
                 success: false,
@@ -180,14 +171,12 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // Find user in database
         const result = await pool.query(
             `SELECT id, username, email, password, first_name, role, is_active
              FROM users WHERE email = $1`,
             [email]
         );
         
-        // ✅ CHECK IF USER EXISTS
         if (result.rows.length === 0) {
             console.log('❌ Login failed: User not found:', email);
             return res.status(401).json({
@@ -198,7 +187,6 @@ app.post('/api/auth/login', async (req, res) => {
         
         const user = result.rows[0];
         
-        // ✅ CHECK IF ACCOUNT IS ACTIVE
         if (!user.is_active) {
             console.log('❌ Login failed: Account deactivated:', email);
             return res.status(403).json({
@@ -207,7 +195,6 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // ✅ VERIFY PASSWORD
         const isValidPassword = await bcrypt.compare(password, user.password);
         if (!isValidPassword) {
             console.log('❌ Login failed: Invalid password for:', email);
@@ -217,14 +204,12 @@ app.post('/api/auth/login', async (req, res) => {
             });
         }
         
-        // ✅ ALL CHECKS PASSED - Generate JWT token
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES }
         );
         
-        // Update last login
         await pool.query(
             'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1',
             [user.id]
@@ -255,16 +240,9 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// Logout
-app.post('/api/auth/logout', (req, res) => {
-    res.json({ success: true, message: 'Logged out successfully' });
-});
-
 // ============================================================
 // USER ENDPOINTS
 // ============================================================
-
-// Get user profile
 app.get('/api/user/profile', async (req, res) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
@@ -309,22 +287,6 @@ app.put('/api/user/password', (req, res) => {
     res.json({ success: true, message: 'Password updated' });
 });
 
-app.post('/api/user/2fa/enable', (req, res) => {
-    res.json({ success: true, message: '2FA enabled' });
-});
-
-app.post('/api/user/2fa/disable', (req, res) => {
-    res.json({ success: true, message: '2FA disabled' });
-});
-
-app.get('/api/user/kyc/status', (req, res) => {
-    res.json({ status: 'pending', level: 1 });
-});
-
-app.post('/api/user/kyc/submit', (req, res) => {
-    res.json({ success: true, message: 'KYC submitted' });
-});
-
 // ============================================================
 // BALANCE ENDPOINT
 // ============================================================
@@ -352,9 +314,6 @@ app.get('/api/balance', async (req, res) => {
     }
 });
 
-// ============================================================
-// DEPOSIT ENDPOINTS
-// ============================================================
 app.post('/api/balance/deposit', async (req, res) => {
     const { userId, asset, amount, address, txHash } = req.body;
     
@@ -383,9 +342,6 @@ app.post('/api/balance/deposit', async (req, res) => {
     }
 });
 
-// ============================================================
-// WITHDRAWAL ENDPOINTS
-// ============================================================
 app.post('/api/balance/withdraw', async (req, res) => {
     const { userId, asset, amount, address } = req.body;
     const client = await pool.connect();
@@ -512,7 +468,7 @@ app.put('/api/admin/deposits/:id/approve', async (req, res) => {
             [adminId, id]
         );
 
-        const balanceResult = await client.query(
+        await client.query(
             `INSERT INTO balances (user_id, asset, available)
              VALUES ($1, $2, $3)
              ON CONFLICT (user_id, asset)
@@ -521,25 +477,12 @@ app.put('/api/admin/deposits/:id/approve', async (req, res) => {
             [dep.user_id, dep.asset, dep.amount]
         );
 
-        await client.query(
-            `INSERT INTO admin_logs (admin_id, action, target_type, target_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [adminId, 'approve_deposit', 'deposit', id, JSON.stringify({ 
-                user_id: dep.user_id, 
-                amount: dep.amount, 
-                asset: dep.asset 
-            })]
-        );
-
         await client.query('COMMIT');
         
         console.log(`✅ Deposit ${id} approved: ${dep.amount} ${dep.asset} credited to user ${dep.user_id}`);
         res.json({ 
             success: true, 
-            message: `Deposit approved! ${dep.amount} ${dep.asset} credited.`,
-            amount: dep.amount,
-            asset: dep.asset,
-            newBalance: balanceResult.rows[0].available
+            message: `Deposit approved! ${dep.amount} ${dep.asset} credited.`
         });
     } catch (error) {
         await client.query('ROLLBACK');
@@ -658,17 +601,6 @@ app.put('/api/admin/withdrawals/:id/approve', async (req, res) => {
             [wd.amount, wd.user_id, wd.asset]
         );
 
-        await client.query(
-            `INSERT INTO admin_logs (admin_id, action, target_type, target_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [adminId, 'approve_withdrawal', 'withdrawal', id, JSON.stringify({ 
-                user_id: wd.user_id, 
-                amount: wd.amount, 
-                asset: wd.asset,
-                tx_hash: tx_hash || null
-            })]
-        );
-
         await client.query('COMMIT');
         
         console.log(`✅ Withdrawal ${id} approved: ${wd.amount} ${wd.asset} from user ${wd.user_id}`);
@@ -718,12 +650,6 @@ app.put('/api/admin/withdrawals/:id/reject', async (req, res) => {
             [wd.amount, wd.user_id, wd.asset]
         );
 
-        await client.query(
-            `INSERT INTO admin_logs (admin_id, action, target_type, target_id, details)
-             VALUES ($1, $2, $3, $4, $5)`,
-            [req.user?.id || 1, 'reject_withdrawal', 'withdrawal', id, JSON.stringify({ reason })]
-        );
-
         await client.query('COMMIT');
         
         console.log(`❌ Withdrawal ${id} rejected: ${wd.amount} ${wd.asset} returned to user ${wd.user_id}`);
@@ -751,31 +677,6 @@ app.get('/api/admin/users', async (req, res) => {
         res.json(result.rows);
     } catch (error) {
         console.error('Error fetching users:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/admin/users/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const user = await pool.query(`
-            SELECT id, username, email, first_name, last_name, phone, role, 
-                   kyc_status, is_active, created_at
-            FROM users
-            WHERE id = $1
-        `, [id]);
-        
-        if (user.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        const balances = await pool.query(
-            'SELECT asset, available, locked FROM balances WHERE user_id = $1',
-            [id]
-        );
-        
-        res.json({ ...user.rows[0], balances: balances.rows });
-    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
@@ -836,20 +737,6 @@ app.delete('/api/admin/users/:id', async (req, res) => {
 // ============================================================
 // ADMIN KYC ENDPOINTS
 // ============================================================
-app.get('/api/admin/kyc', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT k.*, u.username, u.email 
-            FROM kyc_requests k
-            JOIN users u ON k.user_id = u.id
-            ORDER BY k.created_at DESC
-        `);
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
 app.get('/api/admin/kyc/pending', async (req, res) => {
     try {
         const result = await pool.query(`
@@ -938,9 +825,6 @@ app.get('/api/admin/stats', async (req, res) => {
         const pendingWith = await pool.query("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'");
         stats.pendingWithdrawals = parseInt(pendingWith.rows[0].count);
         
-        const orders = await pool.query("SELECT COUNT(*) FROM orders WHERE status = 'open'");
-        stats.activeOrders = parseInt(orders.rows[0].count);
-        
         const kycPending = await pool.query("SELECT COUNT(*) FROM kyc_requests WHERE status = 'pending'");
         stats.kycPending = parseInt(kycPending.rows[0].count);
         
@@ -948,169 +832,6 @@ app.get('/api/admin/stats', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-});
-
-// ============================================================
-// ADMIN LOGS
-// ============================================================
-app.get('/api/admin/logs', async (req, res) => {
-    const { limit = 100 } = req.query;
-    try {
-        const result = await pool.query(`
-            SELECT l.*, u.username as admin_name
-            FROM admin_logs l
-            JOIN users u ON l.admin_id = u.id
-            ORDER BY l.created_at DESC
-            LIMIT $1
-        `, [limit]);
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================================
-// ADMIN SETTINGS
-// ============================================================
-app.get('/api/admin/settings', async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT key, value FROM settings WHERE user_id = 0 OR user_id IS NULL`
-        );
-        const settings = {};
-        result.rows.forEach(row => {
-            settings[row.key] = row.value;
-        });
-        res.json(settings);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.put('/api/admin/settings', async (req, res) => {
-    try {
-        const settings = req.body;
-        const keys = Object.keys(settings);
-        
-        for (const key of keys) {
-            await pool.query(
-                `INSERT INTO settings (user_id, key, value, updated_at)
-                 VALUES (0, $1, $2, CURRENT_TIMESTAMP)
-                 ON CONFLICT (user_id, key)
-                 DO UPDATE SET value = $2, updated_at = CURRENT_TIMESTAMP`,
-                [key, settings[key]]
-            );
-        }
-        
-        res.json({ success: true, message: 'Settings updated' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================================
-// ORDER ENDPOINTS
-// ============================================================
-app.get('/api/orders', (req, res) => {
-    res.json([]);
-});
-
-app.post('/api/orders', (req, res) => {
-    res.json({ success: true, message: 'Order placed', id: Date.now() });
-});
-
-app.delete('/api/orders/:id', (req, res) => {
-    res.json({ success: true, message: 'Order cancelled' });
-});
-
-app.get('/api/orders/:id', (req, res) => {
-    res.json({ id: req.params.id, status: 'open', pair: 'BTC/USDT' });
-});
-
-// ============================================================
-// TRADE ENDPOINTS
-// ============================================================
-app.get('/api/trades', (req, res) => {
-    res.json([]);
-});
-
-app.get('/api/trades/history', (req, res) => {
-    res.json([]);
-});
-
-// ============================================================
-// API KEYS ENDPOINTS
-// ============================================================
-app.get('/api/keys', (req, res) => {
-    res.json([]);
-});
-
-app.post('/api/keys', (req, res) => {
-    res.json({ success: true, apiKey: 'sk_test_' + Date.now() });
-});
-
-app.delete('/api/keys/:id', (req, res) => {
-    res.json({ success: true, message: 'API key revoked' });
-});
-
-// ============================================================
-// WHITELIST ENDPOINTS
-// ============================================================
-app.get('/api/whitelist', (req, res) => {
-    res.json([]);
-});
-
-app.post('/api/whitelist', (req, res) => {
-    res.json({ success: true, message: 'Address added' });
-});
-
-app.delete('/api/whitelist/:address', (req, res) => {
-    res.json({ success: true, message: 'Address removed' });
-});
-
-// ============================================================
-// REFERRAL ENDPOINTS
-// ============================================================
-app.get('/api/referral', (req, res) => {
-    res.json({ code: 'REF123', earnings: 0, referrals: [] });
-});
-
-app.post('/api/referral/share', (req, res) => {
-    res.json({ success: true, link: 'https://tradeflow.com/ref/REF123' });
-});
-
-// ============================================================
-// WATCHLIST ENDPOINTS
-// ============================================================
-app.get('/api/watchlist', (req, res) => {
-    res.json(['BTC/USDT', 'ETH/USDT']);
-});
-
-app.post('/api/watchlist', (req, res) => {
-    res.json({ success: true, message: 'Added to watchlist' });
-});
-
-app.delete('/api/watchlist/:pair', (req, res) => {
-    res.json({ success: true, message: 'Removed from watchlist' });
-});
-
-// ============================================================
-// EXPORT ENDPOINTS
-// ============================================================
-app.get('/api/export/data', (req, res) => {
-    res.json({ success: true, data: [], message: 'Data exported' });
-});
-
-app.get('/api/export/csv', (req, res) => {
-    res.setHeader('Content-Type', 'text/csv');
-    res.send('Pair,Price,Volume\nBTC/USDT,61690,1245000\n');
-});
-
-// ============================================================
-// DELETE ACCOUNT
-// ============================================================
-app.delete('/api/user/account', (req, res) => {
-    res.json({ success: true, message: 'Account deleted' });
 });
 
 // ============================================================
@@ -1153,32 +874,9 @@ server.listen(PORT, () => {
     console.log(`║   📡 WebSocket: ws://localhost:${PORT}                    ║`);
     console.log(`║   🌐 HTTP API: http://localhost:${PORT}                   ║`);
     console.log('║                                                          ║');
-    console.log('║   🔒 SECURE: Login verifies user & password correctly   ║');
-    console.log('║   🔒 SECURE: Invalid login returns proper error         ║');
-    console.log('║   🔒 SECURE: Passwords hashed with bcrypt              ║');
-    console.log('║                                                          ║');
     console.log('║   ✅ Registration creates users in database             ║');
     console.log('║   ✅ Login authenticates users with JWT                 ║');
     console.log('║   ✅ Balance fetches from database                      ║');
-    console.log('║                                                          ║');
-    console.log('║   📋 50+ API ENDPOINTS AVAILABLE:                      ║');
-    console.log('║   🔐 Auth: Login, Register, Logout                    ║');
-    console.log('║   👤 User: Profile, Password, 2FA, KYC               ║');
-    console.log('║   💰 Balance: Get REAL balance from database           ║');
-    console.log('║   📥 Deposits: Request, Approve, Reject                ║');
-    console.log('║   📤 Withdrawals: Request, Approve, Reject             ║');
-    console.log('║   👥 Users: List, View, Status, Role, Delete          ║');
-    console.log('║   🪪 KYC: List, Approve, Reject                       ║');
-    console.log('║   📊 Orders: Place, Cancel, Get                       ║');
-    console.log('║   📈 Trades: Get history                              ║');
-    console.log('║   🔑 API Keys: Create, Revoke, Get                    ║');
-    console.log('║   📋 Whitelist: Add, Remove, Get                      ║');
-    console.log('║   🎁 Referral: Get, Share                            ║');
-    console.log('║   ⭐ Watchlist: Get, Add, Remove                     ║');
-    console.log('║   ⚙️ Settings: Get, Update                           ║');
-    console.log('║   📜 Logs: View admin activity logs                   ║');
-    console.log('║   💾 Export: Data, CSV                               ║');
-    console.log('║   🗑️ Delete Account                                   ║');
     console.log('║                                                          ║');
     console.log('╚══════════════════════════════════════════════════════════╝');
     console.log('');
