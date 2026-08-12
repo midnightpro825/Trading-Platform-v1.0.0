@@ -2,10 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
 const axios = require('axios');
+const path = require('path');
 const app = express();
 
 // ============================================================
-// 🔧 FIX: CORS - Allow your domains + local development
+// 🔧 CORS - Allow your domains + local development
 // ============================================================
 const allowedOrigins = [
   'https://tradeflows.site',
@@ -34,7 +35,12 @@ app.use(cors({
 app.use(express.json());
 
 // ============================================================
-// 🔧 FIX: Use environment variable for port
+// ✅ SERVE FRONTEND FILES FROM backend/public
+// ============================================================
+app.use(express.static('backend/public'));
+
+// ============================================================
+// 🔧 PORT CONFIGURATION
 // ============================================================
 const PORT = process.env.PORT || 8080;
 const WS_PORT = process.env.WS_PORT || PORT;
@@ -273,6 +279,14 @@ app.get('/api/trades', (req, res) => {
 });
 
 // ============================================================
+// ✅ SPA FALLBACK - Serve index.html for any unknown routes
+// This MUST be after all API routes
+// ============================================================
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'backend', 'public', 'index.html'));
+});
+
+// ============================================================
 // START SERVER
 // ============================================================
 console.log(`
@@ -286,6 +300,7 @@ console.log(`
 ║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
 ║   🔄 Price Updates: Every 10 seconds                   ║
 ║   🔒 CORS: Restricted to allowed domains               ║
+║   📁 Frontend: Serving from backend/public             ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
 `);
