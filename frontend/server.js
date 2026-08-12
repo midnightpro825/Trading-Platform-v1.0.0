@@ -1,27 +1,205 @@
-// server.js - Simplified working version
+// server.js - Complete Backend with WebSocket + Binance API
+const express = require('express');
+const cors = require('cors');
 const WebSocket = require('ws');
-const Exchange = require('./exchange');
+const axios = require('axios');
+const app = express();
 
-// Create exchange
-const exchange = new Exchange();
+// ============================================================
+// 🔧 FIX: CORS - Allow your domains + local development
+// ============================================================
+const allowedOrigins = [
+  'https://tradeflows.site',
+  'https://www.tradeflows.site',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:8080'
+];
 
-// Create test users
-console.log('👤 Creating users...');
-exchange.createUser('alice', { BTC: 10, ETH: 50, SOL: 200, USDT: 100000 });
-exchange.createUser('bob', { BTC: 0, ETH: 0, SOL: 0, USDT: 50000 });
-exchange.createUser('charlie', { BTC: 5, ETH: 20, SOL: 100, USDT: 25000 });
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 
-console.log('✅ Users created!');
+app.use(express.json());
 
-// WebSocket server
-const wss = new WebSocket.Server({ port: 8080 });
-console.log('🔌 WebSocket server running on ws://localhost:8080');
+// ============================================================
+// 🔧 FIX: Use environment variable for port (Hostinger compatible)
+// ============================================================
+const PORT = process.env.PORT || 8080;
+// WebSocket port - can be same as HTTP port or different
+const WS_PORT = process.env.WS_PORT || PORT;
 
-// Store all connected clients
+// ============================================================
+// SIMPLE ORDER MATCHING ENGINE (In-Memory)
+// ============================================================
+const orderBook = {
+  bids: [], // [price, quantity, userId, orderId]
+  asks: [],
+  orderMap: new Map(),
+  nextOrderId: 1,
+  trades: []
+};
+
+function addOrder(side, price, quantity, userId) {
+  const order = {
+    id: orderBook.nextOrderId++,
+    side,
+    price: parseFloat(price),
+    quantity: parseFloat(quantity),
+    userId,
+    timestamp: Date.now()
+  };
+
+  orderBook.orderMap.set(order.id, order);
+
+  if (side === 'buy') {
+    orderBook.bids.push([order.price, order.quantity, order.userId, order.id]);
+    orderBook.bids.sort((a, b) => b[0] - a[0] || a[3] - b[3]);
+  } else {
+    orderBook.asks.push([order.price, order.quantity, order.userId, order.id]);
+    orderBook.asks.sort((a, b) => a[0] - b[0] || a[3] - b[3]);
+  }
+
+  matchOrders();
+  return order;
+}
+
+function matchOrders() {
+  let trades = [];
+
+  while (orderBook.bids.length > 0 && orderBook.asks.length > 0) {
+    const bestBid = orderBook.bids[0];
+    const bestAsk = orderBook.asks[0];
+
+    if (bestBid[0] < bestAsk[0]) break;
+
+    const matchPrice = bestAsk[0];
+    const matchQty = Math.min(bestBid[1], bestAsk[1]);
+
+    trades.push({
+      price: matchPrice,
+      quantity: matchQty,
+      buyerId: bestBid[2],
+      sellerId: bestAsk[2],
+      buyerOrderId: bestBid[3],
+      sellerOrderId: bestAsk[3],
+      timestamp: Date.now()
+    });
+
+    bestBid[1] -= matchQty;
+    bestAsk[1] -= matchQty;
+
+    if (bestBid[1] === 0) orderBook.bids.shift();
+    if (bestAsk[1] === 0) orderBook.asks.shift();
+  }
+
+  orderBook.trades.push(...trades);
+  return trades;
+}
+
+function getOrderBook() {
+  return {
+    bids: orderBook.bids.map(([price, qty]) => [price, qty]),
+    asks: orderBook.asks.map(([price, qty]) => [price, qty])
+  };
+}
+
+// ============================================================
+// WEBSOCKET SERVER (Hostinger compatible)
+// ============================================================
+let wss = null;
 const clients = new Set();
 
-// Broadcast function
+// Try to start WebSocket server
+try {
+  // Try on same port first (for Hostinger)
+  if (WS_PORT === PORT) {
+    const server = app.listen(PORT);
+    wss = new WebSocket.Server({ server });
+    console.log(`✅ WebSocket running on same port ${WS_PORT}`);
+  } else {
+    // Different port (for local development)
+    wss = new WebSocket.Server({ port: WS_PORT });
+    console.log(`✅ WebSocket running on port ${WS_PORT}`);
+  }
+} catch (error) {
+  console.log('⚠️ WebSocket failed to start:', error.message);
+  console.log('📊 Falling back to HTTP polling mode (no WebSocket)');
+  wss = null;
+}
+
+if (wss) {
+  wss.on('connection', (ws) => {
+    console.log('🟢 Client connected');
+    clients.add(ws);
+
+    // Send initial data
+    ws.send(JSON.stringify({
+      type: 'connected',
+      message: 'Connected to TradeFlow WebSocket',
+      orderbook: getOrderBook()
+    }));
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message);
+        console.log('📩 Received:', data.type);
+
+        if (data.type === 'placeOrder') {
+          const order = addOrder(data.side, data.price, data.quantity, data.userId);
+          
+          // Broadcast updated order book
+          broadcast({
+            type: 'orderbook',
+            data: getOrderBook()
+          });
+
+          // Broadcast new trade if any
+          if (orderBook.trades.length > 0) {
+            const lastTrade = orderBook.trades[orderBook.trades.length - 1];
+            broadcast({
+              type: 'trade',
+              data: lastTrade
+            });
+          }
+
+          ws.send(JSON.stringify({
+            type: 'orderResult',
+            success: true,
+            orderId: order.id
+          }));
+        }
+      } catch (error) {
+        console.error('Error:', error.message);
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: error.message
+        }));
+      }
+    });
+
+    ws.on('close', () => {
+      console.log('🔴 Client disconnected');
+      clients.delete(ws);
+    });
+  });
+}
+
 function broadcast(data) {
+  if (!wss) return;
   const message = JSON.stringify(data);
   clients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
@@ -30,136 +208,120 @@ function broadcast(data) {
   });
 }
 
-// Mock market prices
-const marketPrices = {
-  'BTC/USDT': '45000',
-  'ETH/USDT': '3000',
-  'SOL/USDT': '150',
-  'ADA/USDT': '0.45'
-};
+// ============================================================
+// BINANCE API - REAL PRICE DATA
+// ============================================================
+async function fetchBinancePrice(symbol = 'BTCUSDT') {
+  try {
+    const response = await axios.get(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+    return {
+      price: parseFloat(response.data.lastPrice),
+      change: parseFloat(response.data.priceChangePercent),
+      volume: parseFloat(response.data.volume),
+      high: parseFloat(response.data.highPrice),
+      low: parseFloat(response.data.lowPrice)
+    };
+  } catch (error) {
+    console.error('❌ Binance API error:', error.message);
+    return null;
+  }
+}
 
-// Simulate price updates
-setInterval(() => {
-  Object.keys(marketPrices).forEach(key => {
-    const current = parseFloat(marketPrices[key]);
-    const change = (Math.random() - 0.5) * 200;
-    const newPrice = Math.max(0, current + change);
-    marketPrices[key] = newPrice.toFixed(2);
-  });
-  
+// ============================================================
+// FETCH PRICES EVERY 10 SECONDS
+// ============================================================
+async function updatePrices() {
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'DOGEUSDT', 'SOLUSDT', 'ADAUSDT'];
+  const prices = {};
+
+  for (const symbol of symbols) {
+    const data = await fetchBinancePrice(symbol);
+    if (data) {
+      const pair = symbol.replace('USDT', '/USDT');
+      prices[pair] = data;
+    }
+  }
+
   broadcast({
     type: 'marketPrices',
-    data: marketPrices
+    data: prices
   });
-}, 5000);
+}
 
-// Connection handler
-wss.on('connection', (ws) => {
-  console.log('🟢 Client connected');
-  clients.add(ws);
+// Start price updates (even if WebSocket fails)
+setInterval(updatePrices, 10000);
+updatePrices();
 
-  // Get order books
-  const orderbooks = {};
-  const users = { alice: {}, bob: {}, charlie: {} };
-  
-  // Get balances for all users
-  ['alice', 'bob', 'charlie'].forEach(user => {
-    const balances = exchange.getBalance(user);
-    users[user] = {
-      'BTC/USDT': balances,
-      'ETH/USDT': balances,
-      'SOL/USDT': balances,
-      'ADA/USDT': balances
-    };
-  });
-
-  // Send initial state
-  ws.send(JSON.stringify({
-    type: 'init',
-    data: {
-      orderbooks: {
-        'BTC/USDT': exchange.getOrderBook(),
-        'ETH/USDT': exchange.getOrderBook(),
-        'SOL/USDT': exchange.getOrderBook(),
-        'ADA/USDT': exchange.getOrderBook()
-      },
-      users: users,
-      marketPrices: marketPrices
-    }
-  }));
-
-  // Handle messages
-  ws.on('message', (message) => {
-    try {
-      const data = JSON.parse(message);
-      console.log('📩 Received:', data);
-
-      switch (data.type) {
-        case 'placeOrder':
-          try {
-            const result = exchange.placeOrder(
-              data.userId,
-              data.side,
-              data.price,
-              data.quantity
-            );
-            
-            ws.send(JSON.stringify({
-              type: 'orderResult',
-              success: true,
-              data: result
-            }));
-            
-            // Broadcast updated balances
-            ['alice', 'bob', 'charlie'].forEach(user => {
-              const balances = exchange.getBalance(user);
-              broadcast({
-                type: 'balance',
-                userId: user,
-                data: {
-                  'BTC/USDT': balances,
-                  'ETH/USDT': balances,
-                  'SOL/USDT': balances,
-                  'ADA/USDT': balances
-                }
-              });
-            });
-            
-            // Broadcast trade
-            broadcast({
-              type: 'trade',
-              pair: 'BTC/USDT',
-              data: {
-                price: result.trades[0]?.price || '45000',
-                quantity: data.quantity,
-                buyerUserId: data.side === 'buy' ? data.userId : 'system',
-                sellerUserId: data.side === 'sell' ? data.userId : 'system',
-                timestamp: Date.now()
-              }
-            });
-            
-          } catch (error) {
-            ws.send(JSON.stringify({
-              type: 'orderResult',
-              success: false,
-              error: error.message
-            }));
-          }
-          break;
-
-        default:
-          console.log('Unknown message type:', data.type);
-      }
-    } catch (error) {
-      console.error('Error processing message:', error);
-    }
-  });
-
-  ws.on('close', () => {
-    console.log('🔴 Client disconnected');
-    clients.delete(ws);
+// ============================================================
+// HTTP API ROUTES - FALLBACK FOR NON-WEBSOCKET CLIENTS
+// ============================================================
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    websocket: wss !== null,
+    timestamp: new Date().toISOString()
   });
 });
 
-console.log('✅ Server ready! Waiting for connections...');
-console.log('📊 Trading pairs: BTC, ETH, SOL, ADA');
+app.get('/api/orderbook', (req, res) => {
+  res.json(getOrderBook());
+});
+
+app.get('/api/prices', async (req, res) => {
+  const symbols = ['BTCUSDT', 'ETHUSDT', 'DOGEUSDT', 'SOLUSDT', 'ADAUSDT'];
+  const prices = {};
+
+  for (const symbol of symbols) {
+    const data = await fetchBinancePrice(symbol);
+    if (data) {
+      const pair = symbol.replace('USDT', '/USDT');
+      prices[pair] = data;
+    }
+  }
+
+  res.json(prices);
+});
+
+app.get('/api/trades', (req, res) => {
+  res.json(orderBook.trades.slice(-50));
+});
+
+// ============================================================
+// START SERVER
+// ============================================================
+// Only start the server if it hasn't been started with WebSocket
+if (WS_PORT !== PORT) {
+  app.listen(PORT, () => {
+    console.log(`
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║   🚀 TRADEFLOW BACKEND STARTED                         ║
+║                                                          ║
+║   🌐 HTTP API: http://localhost:${PORT}                 ║
+║   📡 WebSocket: ${wss ? `ws://localhost:${WS_PORT}` : '❌ DISABLED (fallback mode)'}
+║                                                          ║
+║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
+║   🔄 Price Updates: Every 10 seconds                   ║
+║   🔒 CORS: Restricted to allowed domains               ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+    `);
+  });
+} else {
+  // Server already started with WebSocket
+  console.log(`
+╔══════════════════════════════════════════════════════════╗
+║                                                          ║
+║   🚀 TRADEFLOW BACKEND STARTED                         ║
+║                                                          ║
+║   🌐 HTTP API: http://localhost:${PORT}                 ║
+║   📡 WebSocket: ws://localhost:${WS_PORT} (same port)  ║
+║                                                          ║
+║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
+║   🔄 Price Updates: Every 10 seconds                   ║
+║   🔒 CORS: Restricted to allowed domains               ║
+║                                                          ║
+╚══════════════════════════════════════════════════════════╝
+  `);
+}
