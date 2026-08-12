@@ -1,5 +1,3 @@
-i want this one back it was working before we broke evrything 
-// server.js - Complete Backend with WebSocket + Binance API
 const express = require('express');
 const cors = require('cors');
 const WebSocket = require('ws');
@@ -22,7 +20,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -37,17 +34,16 @@ app.use(cors({
 app.use(express.json());
 
 // ============================================================
-// 🔧 FIX: Use environment variable for port (Hostinger compatible)
+// 🔧 FIX: Use environment variable for port
 // ============================================================
 const PORT = process.env.PORT || 8080;
-// WebSocket port - can be same as HTTP port or different
 const WS_PORT = process.env.WS_PORT || PORT;
 
 // ============================================================
 // SIMPLE ORDER MATCHING ENGINE (In-Memory)
 // ============================================================
 const orderBook = {
-  bids: [], // [price, quantity, userId, orderId]
+  bids: [],
   asks: [],
   orderMap: new Map(),
   nextOrderId: 1,
@@ -119,26 +115,22 @@ function getOrderBook() {
 }
 
 // ============================================================
-// WEBSOCKET SERVER (Hostinger compatible)
+// WEBSOCKET SERVER
 // ============================================================
 let wss = null;
 const clients = new Set();
 
-// Try to start WebSocket server
 try {
-  // Try on same port first (for Hostinger)
   if (WS_PORT === PORT) {
     const server = app.listen(PORT);
     wss = new WebSocket.Server({ server });
     console.log(`✅ WebSocket running on same port ${WS_PORT}`);
   } else {
-    // Different port (for local development)
     wss = new WebSocket.Server({ port: WS_PORT });
     console.log(`✅ WebSocket running on port ${WS_PORT}`);
   }
 } catch (error) {
   console.log('⚠️ WebSocket failed to start:', error.message);
-  console.log('📊 Falling back to HTTP polling mode (no WebSocket)');
   wss = null;
 }
 
@@ -147,7 +139,6 @@ if (wss) {
     console.log('🟢 Client connected');
     clients.add(ws);
 
-    // Send initial data
     ws.send(JSON.stringify({
       type: 'connected',
       message: 'Connected to TradeFlow WebSocket',
@@ -162,13 +153,11 @@ if (wss) {
         if (data.type === 'placeOrder') {
           const order = addOrder(data.side, data.price, data.quantity, data.userId);
           
-          // Broadcast updated order book
           broadcast({
             type: 'orderbook',
             data: getOrderBook()
           });
 
-          // Broadcast new trade if any
           if (orderBook.trades.length > 0) {
             const lastTrade = orderBook.trades[orderBook.trades.length - 1];
             broadcast({
@@ -228,9 +217,6 @@ async function fetchBinancePrice(symbol = 'BTCUSDT') {
   }
 }
 
-// ============================================================
-// FETCH PRICES EVERY 10 SECONDS
-// ============================================================
 async function updatePrices() {
   const symbols = ['BTCUSDT', 'ETHUSDT', 'DOGEUSDT', 'SOLUSDT', 'ADAUSDT'];
   const prices = {};
@@ -249,14 +235,12 @@ async function updatePrices() {
   });
 }
 
-// Start price updates (even if WebSocket fails)
 setInterval(updatePrices, 10000);
 updatePrices();
 
 // ============================================================
-// HTTP API ROUTES - FALLBACK FOR NON-WEBSOCKET CLIENTS
+// HTTP API ROUTES
 // ============================================================
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -291,10 +275,7 @@ app.get('/api/trades', (req, res) => {
 // ============================================================
 // START SERVER
 // ============================================================
-// Only start the server if it hasn't been started with WebSocket
-if (WS_PORT !== PORT) {
-  app.listen(PORT, () => {
-    console.log(`
+console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
 ║   🚀 TRADEFLOW BACKEND STARTED                         ║
@@ -307,22 +288,4 @@ if (WS_PORT !== PORT) {
 ║   🔒 CORS: Restricted to allowed domains               ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
-    `);
-  });
-} else {
-  // Server already started with WebSocket
-  console.log(`
-╔══════════════════════════════════════════════════════════╗
-║                                                          ║
-║   🚀 TRADEFLOW BACKEND STARTED                         ║
-║                                                          ║
-║   🌐 HTTP API: http://localhost:${PORT}                 ║
-║   📡 WebSocket: ws://localhost:${WS_PORT} (same port)  ║
-║                                                          ║
-║   📊 Trading Pairs: BTC, ETH, DOGE, SOL, ADA           ║
-║   🔄 Price Updates: Every 10 seconds                   ║
-║   🔒 CORS: Restricted to allowed domains               ║
-║                                                          ║
-╚══════════════════════════════════════════════════════════╝
-  `);
-}
+`);
