@@ -279,9 +279,10 @@ app.get('/api/trades', (req, res) => {
 });
 
 // ============================================================
-// ✅ SPA FALLBACK - CORRECT (NO WILDCARD ISSUES)
+// ✅ SPA FALLBACK - FIXED: Uses app.get('*') to serve index.html
+// This handles /login, /register, /admin, and all React routes
 // ============================================================
-app.use((req, res) => {
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'backend', 'public', 'index.html'));
 });
 
@@ -300,6 +301,7 @@ console.log(`
 ║   🔄 Price Updates: Every 10 seconds                   ║
 ║   🔒 CORS: Restricted to allowed domains               ║
 ║   📁 Frontend: Serving from backend/public             ║
+║   ✅ SPA Routes: /login, /register, /admin, etc.      ║
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
 `);
