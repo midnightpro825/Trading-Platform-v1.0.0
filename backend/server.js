@@ -279,10 +279,9 @@ app.get('/api/trades', (req, res) => {
 });
 
 // ============================================================
-// ✅ SPA FALLBACK - FIXED: Uses app.get('*') to serve index.html
-// This handles /login, /register, /admin, and all React routes
+// ✅✅✅ DEFINITIVE SPA FALLBACK - Works on ALL Express versions
 // ============================================================
-app.get('*', (req, res) => {
+app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'backend', 'public', 'index.html'));
 });
 
